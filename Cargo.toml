@@ -1,0 +1,35 @@
+[workspace]
+members = [".", "xtask/codegen"]
+
+[package]
+name = "int-interval"
+version = "0.1.0"
+edition = "2024"
+description = "A small, no_std half-open interval algebra library for primitive integer types."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/jcfangc/int-interval"
+readme = "README.md"
+keywords = ["interval", "range", "no_std", "integer", "algebra"]
+categories = ["data-structures", "no-std"]
+
+[dependencies]
+
+[dev-dependencies]
+divan = "0.1.21"
+proptest = "1.10.0"
+rust_intervals = "1.0.0"
+
+[lib]
+doctest = false
+
+[[bench]]
+name = "interval_ops"
+harness = false
+
+[[bench]]
+name = "interval_scenarios"
+harness = false
+
+[[bench]]
+name = "construct_only"
+harness = false

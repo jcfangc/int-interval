@@ -1,0 +1,186 @@
+use super::*;
+
+mod unit_tests {
+    use super::*;
+
+    fn span(lo: u8, hi: u8) -> U8CO {
+        U8CO::try_new(lo, hi).unwrap()
+    }
+
+    #[test]
+    fn overlapping() {
+        let a = span(2, 6);
+        let b = span(4, 8);
+
+        match a.union(b) {
+            OneTwo::One(x) => assert_eq!(x, span(2, 8)),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn adjacent() {
+        let a = span(2, 4);
+        let b = span(4, 7);
+
+        match a.union(b) {
+            OneTwo::One(x) => assert_eq!(x, span(2, 7)),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn disjoint() {
+        let a = span(1, 3);
+        let b = span(5, 7);
+
+        match a.union(b) {
+            OneTwo::Two(x, y) => {
+                assert_eq!(x, a);
+                assert_eq!(y, b);
+            }
+            _ => panic!(),
+        }
+    }
+}
+
+mod prop_tests {
+    use std::{vec, vec::Vec};
+
+    use super::*;
+    use proptest::prelude::*;
+
+    fn span(a: u8, b: u8) -> Option<U8CO> {
+        let lo = a.min(b);
+        let hi = a.max(b);
+        U8CO::try_new(lo, hi)
+    }
+
+    fn edge_values() -> Vec<u8> {
+        let mut v = vec![u8::MIN, u8::MAX, 0, 1];
+
+        if u8::MIN < u8::MAX {
+            v.push(u8::MIN.saturating_add(1));
+            v.push(u8::MAX.saturating_sub(1));
+        }
+
+        v.sort_unstable();
+        v.dedup();
+        v
+    }
+
+    fn edge_scalar() -> impl Strategy<Value = u8> {
+        prop::sample::select(edge_values())
+    }
+
+    fn mixed_scalar() -> impl Strategy<Value = u8> {
+        prop_oneof! {
+            3 => edge_scalar(),
+            7 => any::<u8>(),
+        }
+    }
+
+    fn span_strategy() -> impl Strategy<Value = U8CO> {
+        (mixed_scalar(), mixed_scalar()).prop_filter_map("non-empty interval", |(a, b)| span(a, b))
+    }
+
+    fn union_contains(u: OneTwo<U8CO>, p: u8) -> bool {
+        match u {
+            OneTwo::One(z) => z.contains(p),
+            OneTwo::Two(l, r) => l.contains(p) || r.contains(p),
+        }
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig {
+            cases: 64,
+            .. ProptestConfig::default()
+        })]
+
+        #[test]
+        fn union_matches_membership_law(
+            x in span_strategy(),
+            y in span_strategy(),
+            p in mixed_scalar(),
+        ) {
+            let actual = union_contains(x.union(y), p);
+            let expected = x.contains(p) || y.contains(p);
+
+            prop_assert_eq!(actual, expected);
+        }
+
+        #[test]
+        fn commutative_as_set(
+            x in span_strategy(),
+            y in span_strategy(),
+            p in mixed_scalar(),
+        ) {
+            let lhs = union_contains(x.union(y), p);
+            let rhs = union_contains(y.union(x), p);
+
+            prop_assert_eq!(lhs, rhs);
+        }
+
+        #[test]
+        fn idempotent(
+            x in span_strategy(),
+        ) {
+            match x.union(x) {
+                OneTwo::One(h) => prop_assert_eq!(h, x),
+                OneTwo::Two(_, _) => prop_assert!(false),
+            }
+        }
+
+        #[test]
+        fn one_iff_contiguous(
+            x in span_strategy(),
+            y in span_strategy(),
+        ) {
+            let is_one = matches!(x.union(y), OneTwo::One(_));
+            prop_assert_eq!(is_one, x.is_contiguous_with(y));
+        }
+
+        #[test]
+        fn two_parts_are_separated(
+            x in span_strategy(),
+            y in span_strategy(),
+        ) {
+            match x.union(y) {
+                OneTwo::One(_) => {}
+                OneTwo::Two(l, r) => {
+                    prop_assert!(!l.intersects(r));
+                    prop_assert!(!l.is_adjacent(r));
+                }
+            }
+        }
+
+        #[test]
+        fn union_shape_is_correct(
+            x in span_strategy(),
+            y in span_strategy(),
+        ) {
+            match x.union(y) {
+
+                OneTwo::One(z) => {
+                    let start = x.start().min(y.start());
+                    let end_excl = x.end_excl().max(y.end_excl());
+
+                    prop_assert!(x.is_contiguous_with(y));
+                    prop_assert_eq!(z, U8CO::try_new(start, end_excl).unwrap());
+                }
+
+                OneTwo::Two(l, r) => {
+
+                    let (left, right) =
+                        if x.start() <= y.start() { (x, y) } else { (y, x) };
+
+                    prop_assert!(!x.is_contiguous_with(y));
+                    prop_assert_eq!(l, left);
+                    prop_assert_eq!(r, right);
+                    prop_assert!(!l.intersects(r));
+                    prop_assert!(!l.is_adjacent(r));
+                }
+            }
+        }
+    }
+}
