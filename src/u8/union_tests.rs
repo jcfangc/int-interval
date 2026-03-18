@@ -1,6 +1,7 @@
 use super::*;
 
 mod unit_tests {
+
     use super::*;
 
     fn span(lo: u8, hi: u8) -> U8CO {

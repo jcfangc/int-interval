@@ -11,6 +11,8 @@ mod intersection_tests;
 #[cfg(test)]
 mod symmetric_difference_tests;
 #[cfg(test)]
+mod transform_tests;
+#[cfg(test)]
 mod union_tests;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
@@ -23,172 +25,234 @@ pub struct U8CO {
 // low-level api: construction / accessors / predicates
 // ------------------------------------------------------------
 
-impl U8CO {
-    #[inline]
-    pub const fn try_new(start: u8, end_excl: u8) -> Option<Self> {
-        if start < end_excl {
-            Some(Self { start, end_excl })
-        } else {
-            None
+mod construction_accessors_predicates {
+
+    use super::*;
+
+    impl U8CO {
+        #[inline]
+        pub const fn try_new(start: u8, end_excl: u8) -> Option<Self> {
+            if start < end_excl {
+                Some(Self { start, end_excl })
+            } else {
+                None
+            }
         }
-    }
 
-    #[inline]
-    pub const fn new_unchecked(start: u8, end_excl: u8) -> Self {
-        debug_assert!(start < end_excl);
-        Self { start, end_excl }
-    }
+        #[inline]
+        pub(super) const fn new_unchecked(start: u8, end_excl: u8) -> Self {
+            debug_assert!(start < end_excl);
+            Self { start, end_excl }
+        }
 
-    #[inline]
-    pub const fn start(self) -> u8 {
-        self.start
-    }
+        #[inline]
+        pub const fn start(self) -> u8 {
+            self.start
+        }
 
-    #[inline]
-    pub const fn end_excl(self) -> u8 {
-        self.end_excl
-    }
+        #[inline]
+        pub const fn end_excl(self) -> u8 {
+            self.end_excl
+        }
 
-    #[inline]
-    pub const fn len(self) -> u8 {
-        self.end_excl - self.start
-    }
+        #[inline]
+        pub const fn end_incl(self) -> u8 {
+            // u8_low_bound =< start < end_excl
+            self.end_excl - 1
+        }
 
-    #[inline]
-    pub const fn contains(self, x: u8) -> bool {
-        self.start <= x && x < self.end_excl
-    }
+        #[inline]
+        pub const fn len(self) -> u8 {
+            self.end_excl - self.start
+        }
 
-    #[inline]
-    pub const fn iter(self) -> core::ops::Range<u8> {
-        self.start..self.end_excl
-    }
+        #[inline]
+        pub const fn contains(self, x: u8) -> bool {
+            self.start <= x && x < self.end_excl
+        }
 
-    #[inline]
-    pub const fn intersects(self, other: Self) -> bool {
-        !(self.end_excl <= other.start || other.end_excl <= self.start)
-    }
+        #[inline]
+        pub const fn iter(self) -> core::ops::Range<u8> {
+            self.start..self.end_excl
+        }
 
-    #[inline]
-    pub const fn is_adjacent(self, other: Self) -> bool {
-        self.end_excl == other.start || other.end_excl == self.start
-    }
+        #[inline]
+        pub const fn intersects(self, other: Self) -> bool {
+            !(self.end_excl <= other.start || other.end_excl <= self.start)
+        }
 
-    #[inline]
-    pub const fn is_contiguous_with(self, other: Self) -> bool {
-        self.intersects(other) || self.is_adjacent(other)
+        #[inline]
+        pub const fn is_adjacent(self, other: Self) -> bool {
+            self.end_excl == other.start || other.end_excl == self.start
+        }
+
+        #[inline]
+        pub const fn is_contiguous_with(self, other: Self) -> bool {
+            self.intersects(other) || self.is_adjacent(other)
+        }
     }
 }
 
 // ------------------------------------------------------------
-// high-level api: interval algebra
+// interval algebra api: intersection / convex_hull / between / union / difference / symmetric_difference
 // ------------------------------------------------------------
 
-impl U8CO {
-    #[inline]
-    pub const fn intersection(self, other: Self) -> Option<Self> {
-        let start = if self.start >= other.start {
-            self.start
-        } else {
-            other.start
-        };
+mod interval_algebra {
 
-        let end_excl = if self.end_excl <= other.end_excl {
-            self.end_excl
-        } else {
-            other.end_excl
-        };
+    use super::*;
 
-        Self::try_new(start, end_excl)
-    }
-}
+    impl U8CO {
+        /// Returns the intersection of two intervals.
+        ///
+        /// If the intervals do not overlap, returns `None`.
+        #[inline]
+        pub const fn intersection(self, other: Self) -> Option<Self> {
+            let start = if self.start >= other.start {
+                self.start
+            } else {
+                other.start
+            };
 
-impl U8CO {
-    #[inline]
-    pub const fn convex_hull(self, other: Self) -> Self {
-        let start = if self.start <= other.start {
-            self.start
-        } else {
-            other.start
-        };
+            let end_excl = if self.end_excl <= other.end_excl {
+                self.end_excl
+            } else {
+                other.end_excl
+            };
 
-        let end_excl = if self.end_excl >= other.end_excl {
-            self.end_excl
-        } else {
-            other.end_excl
-        };
+            Self::try_new(start, end_excl)
+        }
 
-        Self { start, end_excl }
-    }
-}
+        /// Returns the convex hull (smallest interval containing both) of two intervals.
+        ///
+        /// Always returns a valid `U8CO`.
+        #[inline]
+        pub const fn convex_hull(self, other: Self) -> Self {
+            let start = if self.start <= other.start {
+                self.start
+            } else {
+                other.start
+            };
 
-impl U8CO {
-    #[inline]
-    pub const fn between(self, other: Self) -> Option<Self> {
-        let (left, right) = if self.start <= other.start {
-            (self, other)
-        } else {
-            (other, self)
-        };
+            let end_excl = if self.end_excl >= other.end_excl {
+                self.end_excl
+            } else {
+                other.end_excl
+            };
 
-        Self::try_new(left.end_excl, right.start)
-    }
-}
+            Self { start, end_excl }
+        }
 
-impl U8CO {
-    #[inline]
-    pub const fn union(self, other: Self) -> OneTwo<Self> {
-        if self.is_contiguous_with(other) {
-            OneTwo::One(self.convex_hull(other))
-        } else if self.start <= other.start {
-            OneTwo::Two(self, other)
-        } else {
-            OneTwo::Two(other, self)
+        /// Returns the interval strictly between two intervals.
+        ///
+        /// If the intervals are contiguous or overlap, returns `None`.
+        #[inline]
+        pub const fn between(self, other: Self) -> Option<Self> {
+            let (left, right) = if self.start <= other.start {
+                (self, other)
+            } else {
+                (other, self)
+            };
+
+            Self::try_new(left.end_excl, right.start)
+        }
+
+        /// Returns the union of two intervals.
+        ///
+        /// - If intervals are contiguous or overlapping, returns `One` containing the merged interval.
+        /// - Otherwise, returns `Two` containing both intervals in ascending order.
+        #[inline]
+        pub const fn union(self, other: Self) -> OneTwo<Self> {
+            if self.is_contiguous_with(other) {
+                OneTwo::One(self.convex_hull(other))
+            } else if self.start <= other.start {
+                OneTwo::Two(self, other)
+            } else {
+                OneTwo::Two(other, self)
+            }
+        }
+
+        /// Returns the difference of two intervals (self - other).
+        ///
+        /// - If no overlap, returns `One(self)`.
+        /// - If partial overlap, returns `One` or `Two` depending on remaining segments.
+        /// - If fully contained, returns `Zero`.
+        #[inline]
+        pub const fn difference(self, other: Self) -> ZeroOneTwo<Self> {
+            match self.intersection(other) {
+                None => ZeroOneTwo::One(self),
+                Some(inter) => {
+                    let left = Self::try_new(self.start, inter.start);
+                    let right = Self::try_new(inter.end_excl, self.end_excl);
+
+                    match (left, right) {
+                        (None, None) => ZeroOneTwo::Zero,
+                        (Some(x), None) | (None, Some(x)) => ZeroOneTwo::One(x),
+                        (Some(x), Some(y)) => ZeroOneTwo::Two(x, y),
+                    }
+                }
+            }
+        }
+
+        /// Returns the symmetric difference of two intervals.
+        ///
+        /// Equivalent to `(self - other) ∪ (other - self)`.
+        /// - If intervals do not overlap, returns `Two(self, other)` in order.
+        /// - If intervals partially overlap, returns remaining non-overlapping segments as `One` or `Two`.
+        #[inline]
+        pub const fn symmetric_difference(self, other: Self) -> ZeroOneTwo<Self> {
+            match self.intersection(other) {
+                None => {
+                    if self.start <= other.start {
+                        ZeroOneTwo::Two(self, other)
+                    } else {
+                        ZeroOneTwo::Two(other, self)
+                    }
+                }
+                Some(inter) => {
+                    let hull = self.convex_hull(other);
+                    let left = Self::try_new(hull.start, inter.start);
+                    let right = Self::try_new(inter.end_excl, hull.end_excl);
+
+                    match (left, right) {
+                        (None, None) => ZeroOneTwo::Zero,
+                        (Some(x), None) | (None, Some(x)) => ZeroOneTwo::One(x),
+                        (Some(x), Some(y)) => ZeroOneTwo::Two(x, y),
+                    }
+                }
+            }
         }
     }
 }
 
-impl U8CO {
-    #[inline]
-    pub const fn difference(self, other: Self) -> ZeroOneTwo<Self> {
-        match self.intersection(other) {
-            None => ZeroOneTwo::One(self),
-            Some(inter) => {
-                let left = Self::try_new(self.start, inter.start);
-                let right = Self::try_new(inter.end_excl, self.end_excl);
+// ------------------------------------------------------------
+// interval arithmetic / transform api: scale / shift / scale_then_shift / shift_then_scale
+// ------------------------------------------------------------
 
-                match (left, right) {
-                    (None, None) => ZeroOneTwo::Zero,
-                    (Some(x), None) | (None, Some(x)) => ZeroOneTwo::One(x),
-                    (Some(x), Some(y)) => ZeroOneTwo::Two(x, y),
-                }
+mod interval_arithmetic {
+
+    use super::*;
+
+    impl U8CO {
+        #[inline]
+        pub const fn scale(self, factor: u8) -> Option<Self> {
+            if factor == 0 || self.end_excl > u8::MAX / factor {
+                return None;
             }
+            Some(U8CO::new_unchecked(
+                self.start * factor,
+                self.end_excl * factor,
+            ))
         }
-    }
-}
 
-impl U8CO {
-    #[inline]
-    pub const fn symmetric_difference(self, other: Self) -> ZeroOneTwo<Self> {
-        match self.intersection(other) {
-            None => {
-                if self.start <= other.start {
-                    ZeroOneTwo::Two(self, other)
-                } else {
-                    ZeroOneTwo::Two(other, self)
-                }
+        #[inline]
+        pub const fn shift(self, offset: u8) -> Option<Self> {
+            if self.end_excl > u8::MAX - offset {
+                return None;
             }
-            Some(inter) => {
-                let hull = self.convex_hull(other);
-                let left = Self::try_new(hull.start, inter.start);
-                let right = Self::try_new(inter.end_excl, hull.end_excl);
-
-                match (left, right) {
-                    (None, None) => ZeroOneTwo::Zero,
-                    (Some(x), None) | (None, Some(x)) => ZeroOneTwo::One(x),
-                    (Some(x), Some(y)) => ZeroOneTwo::Two(x, y),
-                }
-            }
+            Some(U8CO::new_unchecked(
+                self.start + offset,
+                self.end_excl + offset,
+            ))
         }
     }
 }
