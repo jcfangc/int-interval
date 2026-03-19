@@ -15,9 +15,9 @@ mod difference_tests;
 #[cfg(test)]
 mod intersection_tests;
 #[cfg(test)]
-mod symmetric_difference_tests;
+mod minkowski_tests;
 #[cfg(test)]
-mod transform_tests;
+mod symmetric_difference_tests;
 #[cfg(test)]
 mod union_tests;
 
@@ -229,49 +229,187 @@ mod interval_algebra {
 }
 
 // ------------------------------------------------------------
-// interval arithmetic / transform api: scale / shift
+// Module: Minkowski arithmetic for I16CO
+// Provides checked Minkowski operations for intervals
 // ------------------------------------------------------------
 
-mod interval_arithmetic {
+pub mod minkowski {
     use super::I16CO;
 
+    // --------------------------------------------------------
+    // Interval-to-interval Minkowski operations
+    // --------------------------------------------------------
     impl I16CO {
+        /// Minkowski addition: [a_start, a_end) + [b_start, b_end)
         #[inline]
-        pub const fn scale(self, factor: i16) -> Option<Self> {
-            if factor == 0 {
-                return None;
-            }
-
-            let s0 = match self.start.checked_mul(factor) {
-                Some(v) => v,
-                None => return None,
-            };
-
-            let s1 = match self.end_excl.checked_mul(factor) {
-                Some(v) => v,
-                None => return None,
-            };
-
-            if s0 < s1 {
-                Some(I16CO::new_unchecked(s0, s1))
-            } else {
-                Some(I16CO::new_unchecked(s1, s0))
+        pub const fn minkowski_add(self, other: Self) -> Option<Self> {
+            match self.start.checked_add(other.start) {
+                Some(start) => match self.end_incl().checked_add(other.end_incl()) {
+                    Some(end_incl) => match end_incl.checked_add(1) {
+                        Some(end_excl) => Some(Self::new_unchecked(start, end_excl)),
+                        None => None,
+                    },
+                    None => None,
+                },
+                None => None,
             }
         }
 
+        /// Minkowski subtraction: [a_start, a_end) - [b_start, b_end)
         #[inline]
-        pub const fn shift(self, offset: i16) -> Option<Self> {
-            let a = match self.start.checked_add(offset) {
-                Some(v) => v,
-                None => return None,
-            };
+        pub const fn minkowski_sub(self, other: Self) -> Option<Self> {
+            match self.start.checked_sub(other.end_incl()) {
+                Some(start) => match self.end_incl().checked_sub(other.start) {
+                    Some(end_incl) => match end_incl.checked_add(1) {
+                        Some(end_excl) => Some(Self::new_unchecked(start, end_excl)),
+                        None => None,
+                    },
+                    None => None,
+                },
+                None => None,
+            }
+        }
 
-            let b = match self.end_excl.checked_add(offset) {
-                Some(v) => v,
-                None => return None,
-            };
+        /// Minkowski multiplication: [a_start, a_end) * [b_start, b_end)
+        #[inline]
+        pub const fn minkowski_mul(self, other: Self) -> Option<Self> {
+            let a = self.start;
+            let b = self.end_incl();
+            let c = other.start;
+            let d = other.end_incl();
 
-            Some(I16CO::new_unchecked(a, b))
+            match a.checked_mul(c) {
+                Some(p1) => match a.checked_mul(d) {
+                    Some(p2) => match b.checked_mul(c) {
+                        Some(p3) => match b.checked_mul(d) {
+                            Some(p4) => {
+                                let (min1, max1) = if p1 < p2 { (p1, p2) } else { (p2, p1) };
+                                let (min2, max2) = if p3 < p4 { (p3, p4) } else { (p4, p3) };
+                                let min = if min1 < min2 { min1 } else { min2 };
+                                let max = if max1 > max2 { max1 } else { max2 };
+                                match max.checked_add(1) {
+                                    Some(end_excl) => Some(Self::new_unchecked(min, end_excl)),
+                                    None => None,
+                                }
+                            }
+                            None => None,
+                        },
+                        None => None,
+                    },
+                    None => None,
+                },
+                None => None,
+            }
+        }
+
+        /// Minkowski division: [a_start, a_end) / [b_start, b_end)
+        #[inline]
+        pub const fn minkowski_div(self, other: Self) -> Option<Self> {
+            if other.start <= 0 && other.end_incl() >= 0 {
+                return None; // 避免除零
+            }
+
+            let a = self.start;
+            let b = self.end_incl();
+            let c = other.start;
+            let d = other.end_incl();
+
+            match a.checked_div(c) {
+                Some(p1) => match a.checked_div(d) {
+                    Some(p2) => match b.checked_div(c) {
+                        Some(p3) => match b.checked_div(d) {
+                            Some(p4) => {
+                                let (min1, max1) = if p1 < p2 { (p1, p2) } else { (p2, p1) };
+                                let (min2, max2) = if p3 < p4 { (p3, p4) } else { (p4, p3) };
+                                let min = if min1 < min2 { min1 } else { min2 };
+                                let max = if max1 > max2 { max1 } else { max2 };
+                                match max.checked_add(1) {
+                                    Some(end_excl) => Some(Self::new_unchecked(min, end_excl)),
+                                    None => None,
+                                }
+                            }
+                            None => None,
+                        },
+                        None => None,
+                    },
+                    None => None,
+                },
+                None => None,
+            }
+        }
+    }
+
+    // --------------------------------------------------------
+    // Interval-to-scalar Minkowski operations
+    // --------------------------------------------------------
+    impl I16CO {
+        /// Add a scalar to an interval: [start, end) + n
+        #[inline]
+        pub const fn minkowski_add_n(self, n: i16) -> Option<Self> {
+            match self.start.checked_add(n) {
+                Some(start) => match self.end_excl.checked_add(n) {
+                    Some(end_excl) => Some(Self::new_unchecked(start, end_excl)),
+                    None => None,
+                },
+                None => None,
+            }
+        }
+
+        /// Subtract a scalar from an interval: [start, end) - n
+        #[inline]
+        pub const fn minkowski_sub_n(self, n: i16) -> Option<Self> {
+            match self.start.checked_sub(n) {
+                Some(start) => match self.end_excl.checked_sub(n) {
+                    Some(end_excl) => Some(Self::new_unchecked(start, end_excl)),
+                    None => None,
+                },
+                None => None,
+            }
+        }
+
+        /// Multiply an interval by a scalar: [start, end) * n
+        #[inline]
+        pub const fn minkowski_mul_n(self, n: i16) -> Option<Self> {
+            match self.start.checked_mul(n) {
+                Some(a) => match self.end_incl().checked_mul(n) {
+                    Some(b) => {
+                        let (min, max) = match a < b {
+                            true => (a, b),
+                            false => (b, a),
+                        };
+                        match max.checked_add(1) {
+                            Some(end_excl) => Some(Self::new_unchecked(min, end_excl)),
+                            None => None,
+                        }
+                    }
+                    None => None,
+                },
+                None => None,
+            }
+        }
+
+        /// Divide an interval by a scalar: [start, end) / n
+        #[inline]
+        pub const fn minkowski_div_n(self, n: i16) -> Option<Self> {
+            match n {
+                0 => None, // 避免除零
+                _ => match self.start.checked_div(n) {
+                    Some(a) => match self.end_incl().checked_div(n) {
+                        Some(b) => {
+                            let (min, max) = match a < b {
+                                true => (a, b),
+                                false => (b, a),
+                            };
+                            match max.checked_add(1) {
+                                Some(end_excl) => Some(Self::new_unchecked(min, end_excl)),
+                                None => None,
+                            }
+                        }
+                        None => None,
+                    },
+                    None => None,
+                },
+            }
         }
     }
 }
