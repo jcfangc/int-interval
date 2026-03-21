@@ -42,7 +42,7 @@ mod construction_accessors_predicates {
         }
 
         #[inline]
-        pub(super) const fn new_unchecked(start: u8, end_excl: u8) -> Self {
+        pub const unsafe fn new_unchecked(start: u8, end_excl: u8) -> Self {
             debug_assert!(start < end_excl);
             Self { start, end_excl }
         }
@@ -255,7 +255,13 @@ pub mod minkowski {
                 let Some(end_excl) = self.end_excl.checked_add(other.end_incl()) else {
                     return None;
                 };
-                Some(Self::new_unchecked(start, end_excl))
+
+                // SAFETY:
+                // `checked_add` guarantees both bounds are computed without overflow.
+                // For half-open intervals, addition preserves ordering:
+                // self.start <= self.end_excl - 1 and other.start <= other.end_incl(),
+                // therefore `start < end_excl` still holds for the resulting interval.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
 
             /// Minkowski subtraction: [a_start, a_end) - [b_start, b_end)
@@ -267,7 +273,13 @@ pub mod minkowski {
                 let Some(end_excl) = self.end_excl.checked_sub(other.start) else {
                     return None;
                 };
-                Some(Self::new_unchecked(start, end_excl))
+
+                // SAFETY:
+                // `checked_sub` guarantees both bounds are computed without underflow.
+                // Since `self.start <= self.end_excl - 1` and `other.start <= other.end_incl()`,
+                // we have `self.start - other.end_incl() < self.end_excl - other.start`,
+                // so the resulting half-open interval remains valid.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
 
             /// Minkowski multiplication: [a_start, a_end) * [b_start, b_end)
@@ -282,7 +294,13 @@ pub mod minkowski {
                 let Some(end_excl) = end_incl.checked_add(1) else {
                     return None;
                 };
-                Some(Self::new_unchecked(start, end_excl))
+
+                // SAFETY:
+                // For `U8CO`, all values are non-negative, so endpoint-wise multiplication
+                // is monotone. `start` is the minimum product and `end_incl` is the maximum.
+                // `checked_add(1)` converts the inclusive upper bound back to half-open form,
+                // and overflow has already been excluded.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
 
             /// Minkowski division: [a_start, a_end) / [b_start, b_end)
@@ -301,7 +319,15 @@ pub mod minkowski {
                 let Some(end_excl) = end_incl.checked_add(1) else {
                     return None;
                 };
-                Some(Self::new_unchecked(start, end_excl))
+
+                // SAFETY:
+                // `other.start != 0` excludes division by zero, and all operands are unsigned.
+                // Over positive integers, division is monotone with respect to the dividend and
+                // anti-monotone with respect to the divisor, so:
+                //   min = self.start / other.end_incl()
+                //   max = self.end_incl() / other.start
+                // Thus `start <= end_incl`, and `end_excl = end_incl + 1` is checked.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
         }
 
@@ -318,7 +344,11 @@ pub mod minkowski {
                 let Some(end_excl) = self.end_excl.checked_add(n) else {
                     return None;
                 };
-                Some(Self::new_unchecked(start, end_excl))
+
+                // SAFETY:
+                // `checked_add` excludes overflow, and adding the same scalar to both bounds
+                // preserves the half-open interval ordering.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
 
             /// Subtract a scalar from an interval: [start, end) - n
@@ -330,7 +360,11 @@ pub mod minkowski {
                 let Some(end_excl) = self.end_excl.checked_sub(n) else {
                     return None;
                 };
-                Some(Self::new_unchecked(start, end_excl))
+
+                // SAFETY:
+                // `checked_sub` excludes underflow, and subtracting the same scalar from both
+                // bounds preserves the half-open interval ordering.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
 
             /// Multiply an interval by a scalar: [start, end) * n
@@ -345,7 +379,12 @@ pub mod minkowski {
                 let Some(end_excl) = end_incl.checked_add(1) else {
                     return None;
                 };
-                Some(Self::new_unchecked(start, end_excl))
+
+                // SAFETY:
+                // For unsigned integers, multiplication by a scalar is monotone.
+                // Therefore `start * n` is the lower bound and `end_incl * n` is the upper bound.
+                // `checked_*` operations exclude overflow, and `end_excl` restores half-open form.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
 
             /// Divide an interval by a scalar: [start, end) / n
@@ -360,7 +399,12 @@ pub mod minkowski {
                 let Some(end_excl) = end_incl.checked_add(1) else {
                     return None;
                 };
-                Some(Self::new_unchecked(start, end_excl))
+
+                // SAFETY:
+                // `n != 0` excludes division by zero. For unsigned integers and positive scalar `n`,
+                // division is monotone, so `self.start / n <= self.end_incl() / n`.
+                // `checked_add(1)` safely converts the inclusive upper bound to half-open form.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
         }
     }

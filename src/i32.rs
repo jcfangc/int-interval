@@ -45,7 +45,7 @@ mod construction_accessors_predicates {
         }
 
         #[inline]
-        pub(super) const fn new_unchecked(start: i32, end_excl: i32) -> Self {
+        pub const unsafe fn new_unchecked(start: i32, end_excl: i32) -> Self {
             debug_assert!(start < end_excl);
             Self { start, end_excl }
         }
@@ -273,7 +273,14 @@ pub mod minkowski {
                 let Some(end_excl) = self.end_excl.checked_add(other.end_incl()) else {
                     return None;
                 };
-                Some(Self::new_unchecked(start, end_excl))
+
+                // SAFETY:
+                // `checked_add` guarantees both endpoint computations succeed without overflow.
+                // For half-open intervals, let `a_last = self.end_incl()` and `b_last = other.end_incl()`.
+                // Since `self.start <= a_last` and `other.start <= b_last`, we have
+                // `self.start + other.start <= a_last + b_last < self.end_excl + other.end_incl()`,
+                // hence the computed bounds satisfy `start < end_excl`.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
 
             #[inline]
@@ -284,7 +291,15 @@ pub mod minkowski {
                 let Some(end_excl) = self.end_excl.checked_sub(other.start) else {
                     return None;
                 };
-                Some(Self::new_unchecked(start, end_excl))
+
+                // SAFETY:
+                // `checked_sub` guarantees both endpoint computations succeed without overflow.
+                // For interval subtraction, the minimum is attained at `self.start - other.end_incl()`
+                // and the exclusive upper bound is `self.end_excl - other.start`.
+                // Because `other.start <= other.end_incl()`, we get
+                // `self.start - other.end_incl() < self.end_excl - other.start`,
+                // so the resulting half-open interval is valid.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
 
             #[inline]
@@ -313,7 +328,15 @@ pub mod minkowski {
                     return None;
                 };
 
-                Some(Self::new_unchecked(start, end_excl))
+                // SAFETY:
+                // All four corner products are computed with `checked_mul`, so no intermediate
+                // multiplication overflows. For multiplication over a closed integer rectangle
+                // `[a, b] × [c, d]`, every attainable extremum occurs at a corner, so
+                // `min_max4(p1, p2, p3, p4)` yields the true inclusive lower/upper bounds.
+                // Therefore `start <= end_incl` holds by construction.
+                // `checked_add(1)` then safely converts the inclusive upper bound to the exclusive
+                // upper bound, and implies `end_excl = end_incl + 1`, hence `start < end_excl`.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
 
             #[inline]
@@ -346,7 +369,18 @@ pub mod minkowski {
                     return None;
                 };
 
-                Some(Self::new_unchecked(start, end_excl))
+                // SAFETY:
+                // The guard `other.start <= 0 && other.end_incl() >= 0` rejects any divisor interval
+                // that contains zero, so division by zero cannot occur anywhere in the divisor set.
+                // Each corner quotient is computed with `checked_div`, so exceptional signed cases
+                // such as `MIN / -1` are also rejected.
+                // On each connected component of the divisor domain that excludes zero, integer division
+                // is monotone with respect to the rectangle corners relevant to the extremum search;
+                // thus the global inclusive bounds over the interval pair are captured by the four
+                // corner quotients and recovered by `min_max4`, giving `start <= end_incl`.
+                // `checked_add(1)` safely converts the inclusive upper bound to half-open form, so
+                // the final bounds satisfy `start < end_excl`.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
         }
 
@@ -362,7 +396,12 @@ pub mod minkowski {
                 let Some(end_excl) = self.end_excl.checked_add(n) else {
                     return None;
                 };
-                Some(Self::new_unchecked(start, end_excl))
+
+                // SAFETY:
+                // `checked_add` guarantees both translated bounds are computed without overflow.
+                // Adding the same scalar to both endpoints preserves the interval width exactly,
+                // so a valid half-open interval remains valid and still satisfies `start < end_excl`.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
 
             #[inline]
@@ -373,7 +412,12 @@ pub mod minkowski {
                 let Some(end_excl) = self.end_excl.checked_sub(n) else {
                     return None;
                 };
-                Some(Self::new_unchecked(start, end_excl))
+
+                // SAFETY:
+                // `checked_sub` guarantees both translated bounds are computed without overflow.
+                // Subtracting the same scalar from both endpoints preserves the interval width exactly,
+                // so the strict half-open ordering is unchanged and `start < end_excl` still holds.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
 
             #[inline]
@@ -390,7 +434,15 @@ pub mod minkowski {
                 let Some(end_excl) = end_incl.checked_add(1) else {
                     return None;
                 };
-                Some(Self::new_unchecked(start, end_excl))
+
+                // SAFETY:
+                // Both endpoint products are computed with `checked_mul`, so no signed overflow occurs.
+                // Multiplication by a scalar maps the closed source interval endpoints to the two extreme
+                // candidates; `min_max2` therefore recovers the true inclusive lower/upper bounds whether
+                // `n` is positive, zero, or negative, giving `start <= end_incl`.
+                // `checked_add(1)` safely converts the inclusive upper bound into the exclusive upper bound,
+                // which guarantees the final half-open interval satisfies `start < end_excl`.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
 
             #[inline]
@@ -398,6 +450,7 @@ pub mod minkowski {
                 if n == 0 {
                     return None;
                 }
+
                 let Some(a) = self.start.checked_div(n) else {
                     return None;
                 };
@@ -410,7 +463,16 @@ pub mod minkowski {
                 let Some(end_excl) = end_incl.checked_add(1) else {
                     return None;
                 };
-                Some(Self::new_unchecked(start, end_excl))
+
+                // SAFETY:
+                // The guard `n != 0` excludes division by zero, and `checked_div` additionally rejects
+                // the only overflowing signed case (`MIN / -1`).
+                // Division by a fixed nonzero scalar sends the source closed interval endpoints to the
+                // two extreme candidates for the image interval, so `min_max2` yields the true inclusive
+                // lower/upper bounds and ensures `start <= end_incl`.
+                // `checked_add(1)` safely restores half-open representation, therefore the constructed
+                // interval satisfies `start < end_excl`.
+                Some(unsafe { Self::new_unchecked(start, end_excl) })
             }
         }
     }
