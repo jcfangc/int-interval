@@ -71,6 +71,11 @@ mod construction_accessors_predicates {
         }
 
         #[inline]
+        pub const fn contains_interval(self, other: Self) -> bool {
+            self.start <= other.start && other.end_excl <= self.end_excl
+        }
+
+        #[inline]
         pub const fn iter(self) -> core::ops::Range<i8> {
             self.start..self.end_excl
         }
