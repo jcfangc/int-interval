@@ -12,9 +12,9 @@ mod unit_tests {
 
     #[test]
     fn test_minkowski_add_basic() {
-        let a = I16CO::try_new(1, 5).unwrap();
-        let b = I16CO::try_new(-3, 2).unwrap();
-        let res = a.minkowski_add(b).unwrap();
+        let a = I128CO::try_new(1, 5).unwrap();
+        let b = I128CO::try_new(-3, 2).unwrap();
+        let res = a.checked_minkowski_add(b).unwrap();
         // start = 1 + -3 = -2
         assert_eq!(res.start(), -2);
         // end_excl = (4 + 1 + 1) = 6 (a.end_incl + b.end_incl + 1)
@@ -23,18 +23,18 @@ mod unit_tests {
 
     #[test]
     fn test_minkowski_sub_basic() {
-        let a = I16CO::try_new(5, 10).unwrap();
-        let b = I16CO::try_new(2, 4).unwrap();
-        let res = a.minkowski_sub(b).unwrap();
+        let a = I128CO::try_new(5, 10).unwrap();
+        let b = I128CO::try_new(2, 4).unwrap();
+        let res = a.checked_minkowski_sub(b).unwrap();
         assert_eq!(res.start(), 2); // 5 - 3
         assert_eq!(res.end_excl(), 8); // 9 - 2 + 1
     }
 
     #[test]
     fn test_minkowski_mul_basic() {
-        let a = I16CO::try_new(-2, 3).unwrap(); // [-2,3)
-        let b = I16CO::try_new(-1, 2).unwrap(); // [-1,2)
-        let res = a.minkowski_mul(b).unwrap();
+        let a = I128CO::try_new(-2, 3).unwrap(); // [-2,3)
+        let b = I128CO::try_new(-1, 2).unwrap(); // [-1,2)
+        let res = a.checked_minkowski_mul(b).unwrap();
         // 四个组合: -2*-1=2, -2*1=-2, 2*-1=-2, 2*1=2 -> min=-2, max=2
         assert_eq!(res.start(), -2);
         assert_eq!(res.end_excl(), 3); // max+1=2+1
@@ -42,9 +42,9 @@ mod unit_tests {
 
     #[test]
     fn test_minkowski_div_basic() {
-        let a = I16CO::try_new(-4, 10).unwrap();
-        let b = I16CO::try_new(2, 5).unwrap();
-        let res = a.minkowski_div(b).unwrap();
+        let a = I128CO::try_new(-4, 10).unwrap();
+        let b = I128CO::try_new(2, 5).unwrap();
+        let res = a.checked_minkowski_div(b).unwrap();
         // 四个组合：-4/2=-2, -4/4=-1, 9/2=4, 9/4=2 -> min=-2, max=4
         assert_eq!(res.start(), -2);
         assert_eq!(res.end_excl(), 5); // max+1=4+1
@@ -52,9 +52,9 @@ mod unit_tests {
 
     #[test]
     fn test_minkowski_div_by_zero() {
-        let a = I16CO::try_new(1, 5).unwrap();
-        let b = I16CO::try_new(0, 3).unwrap();
-        assert!(a.minkowski_div(b).is_none());
+        let a = I128CO::try_new(1, 5).unwrap();
+        let b = I128CO::try_new(0, 3).unwrap();
+        assert!(a.checked_minkowski_div(b).is_none());
     }
 }
 
@@ -63,20 +63,20 @@ mod prop_tests {
     use super::*;
     use proptest::prelude::*;
 
-    fn interval_strategy() -> impl Strategy<Value = I16CO> {
+    fn interval_strategy() -> impl Strategy<Value = I128CO> {
         prop_oneof![
-            Just(I16CO::try_new(i16::MIN, i16::MIN + 1).unwrap()), // [-128, -127)
-            Just(I16CO::try_new(i16::MIN, i16::MAX).unwrap()),     // [-128, 127)
-            Just(I16CO::try_new(i16::MAX - 1, i16::MAX).unwrap()), // [126, 127)
-            (i16::MIN..=i16::MAX, i16::MIN..=i16::MAX)
-                .prop_filter_map("valid interval", |(s, e)| I16CO::try_new(s, e))
+            Just(I128CO::try_new(i128::MIN, i128::MIN + 1).unwrap()), // [-128, -127)
+            Just(I128CO::try_new(i128::MIN, i128::MAX).unwrap()),     // [-128, 127)
+            Just(I128CO::try_new(i128::MAX - 1, i128::MAX).unwrap()), // [126, 127)
+            (i128::MIN..=i128::MAX, i128::MIN..=i128::MAX)
+                .prop_filter_map("valid interval", |(s, e)| I128CO::try_new(s, e))
         ]
     }
 
     proptest! {
         #[test]
         fn prop_add_containment(a in interval_strategy(), b in interval_strategy()) {
-            if let Some(c) = a.minkowski_add(b) {
+            if let Some(c) = a.checked_minkowski_add(b) {
                 let xs = [a.start(), a.end_excl()-1];
                 let ys = [b.start(), b.end_excl()-1];
                 for &x in &xs {
@@ -90,7 +90,7 @@ mod prop_tests {
 
         #[test]
         fn prop_sub_containment(a in interval_strategy(), b in interval_strategy()) {
-            if let Some(c) = a.minkowski_sub(b) {
+            if let Some(c) = a.checked_minkowski_sub(b) {
                 let xs = [a.start(), a.end_excl()-1];
                 let ys = [b.start(), b.end_excl()-1];
                 for &x in &xs {
@@ -104,7 +104,7 @@ mod prop_tests {
 
         #[test]
         fn prop_mul_containment(a in interval_strategy(), b in interval_strategy()) {
-            if let Some(c) = a.minkowski_mul(b) {
+            if let Some(c) = a.checked_minkowski_mul(b) {
                 let xs = [a.start(), a.end_excl()-1];
                 let ys = [b.start(), b.end_excl()-1];
                 for &x in &xs {
@@ -119,7 +119,7 @@ mod prop_tests {
         #[test]
         fn prop_div_containment(a in interval_strategy(), b in interval_strategy()
             .prop_filter("non-zero start", |b| b.start() != 0)) {
-            if let Some(c) = a.minkowski_div(b) {
+            if let Some(c) = a.checked_minkowski_div(b) {
                 let xs = [a.start(), a.end_excl()-1];
                 let ys = [b.start(), b.end_excl()-1];
                 for &x in &xs {
@@ -133,15 +133,15 @@ mod prop_tests {
 
         #[test]
         fn prop_add_commutative(a in interval_strategy(), b in interval_strategy()) {
-            let res1 = a.minkowski_add(b);
-            let res2 = b.minkowski_add(a);
+            let res1 = a.checked_minkowski_add(b);
+            let res2 = b.checked_minkowski_add(a);
             prop_assert_eq!(res1, res2);
         }
 
         #[test]
         fn prop_mul_commutative(a in interval_strategy(), b in interval_strategy()) {
-            let res1 = a.minkowski_mul(b);
-            let res2 = b.minkowski_mul(a);
+            let res1 = a.checked_minkowski_mul(b);
+            let res2 = b.checked_minkowski_mul(a);
             prop_assert_eq!(res1, res2);
         }
     }

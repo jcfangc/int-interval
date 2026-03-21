@@ -9,15 +9,17 @@ use crate::res::{OneTwo, ZeroOneTwo};
 #[cfg(test)]
 mod between_tests;
 #[cfg(test)]
+mod checked_minkowski_tests;
+#[cfg(test)]
 mod convex_hull_tests;
 #[cfg(test)]
 mod difference_tests;
 #[cfg(test)]
 mod intersection_tests;
 #[cfg(test)]
-mod symmetric_difference_tests;
+mod saturating_minkowski_tests;
 #[cfg(test)]
-mod minkowski_tests;
+mod symmetric_difference_tests;
 #[cfg(test)]
 mod union_tests;
 
@@ -79,6 +81,11 @@ mod construction_accessors_predicates {
 
         #[inline]
         pub const fn iter(self) -> core::ops::Range<u64> {
+            self.start..self.end_excl
+        }
+
+        #[inline]
+        pub const fn to_range(self) -> core::ops::Range<u64> {
             self.start..self.end_excl
         }
 
@@ -232,134 +239,220 @@ mod interval_algebra {
 
 // ------------------------------------------------------------
 // Module: Minkowski arithmetic for U64CO
-// Provides checked Minkowski operations for intervals
+// Provides checked and saturating Minkowski operations
 // ------------------------------------------------------------
 
 pub mod minkowski {
-    use super::U64CO;
+    use super::*;
 
-    // --------------------------------------------------------
-    // Interval-to-interval Minkowski operations
-    // --------------------------------------------------------
-    impl U64CO {
-        /// Minkowski addition: [a_start, a_end) + [b_start, b_end)
-        #[inline]
-        pub const fn minkowski_add(self, other: Self) -> Option<Self> {
-            match self.start.checked_add(other.start) {
-                Some(start) => match self.end_incl().checked_add(other.end_incl()) {
-                    Some(end_incl) => match end_incl.checked_add(1) {
-                        Some(end_excl) => Some(Self::new_unchecked(start, end_excl)),
-                        None => None,
-                    },
-                    None => None,
-                },
-                None => None,
+    pub mod checked {
+        use super::*;
+
+        // --------------------------------------------------------
+        // Interval-to-interval Minkowski operations
+        // --------------------------------------------------------
+        impl U64CO {
+            /// Minkowski addition: [a_start, a_end) + [b_start, b_end)
+            #[inline]
+            pub const fn checked_minkowski_add(self, other: Self) -> Option<Self> {
+                let Some(start) = self.start.checked_add(other.start) else {
+                    return None;
+                };
+                let Some(end_excl) = self.end_excl.checked_add(other.end_incl()) else {
+                    return None;
+                };
+                Some(Self::new_unchecked(start, end_excl))
+            }
+
+            /// Minkowski subtraction: [a_start, a_end) - [b_start, b_end)
+            #[inline]
+            pub const fn checked_minkowski_sub(self, other: Self) -> Option<Self> {
+                let Some(start) = self.start.checked_sub(other.end_incl()) else {
+                    return None;
+                };
+                let Some(end_excl) = self.end_excl.checked_sub(other.start) else {
+                    return None;
+                };
+                Some(Self::new_unchecked(start, end_excl))
+            }
+
+            /// Minkowski multiplication: [a_start, a_end) * [b_start, b_end)
+            #[inline]
+            pub const fn checked_minkowski_mul(self, other: Self) -> Option<Self> {
+                let Some(start) = self.start.checked_mul(other.start) else {
+                    return None;
+                };
+                let Some(end_incl) = self.end_incl().checked_mul(other.end_incl()) else {
+                    return None;
+                };
+                let Some(end_excl) = end_incl.checked_add(1) else {
+                    return None;
+                };
+                Some(Self::new_unchecked(start, end_excl))
+            }
+
+            /// Minkowski division: [a_start, a_end) / [b_start, b_end)
+            #[inline]
+            pub const fn checked_minkowski_div(self, other: Self) -> Option<Self> {
+                if other.start == 0 {
+                    return None;
+                }
+
+                let Some(start) = self.start.checked_div(other.end_incl()) else {
+                    return None;
+                };
+                let Some(end_incl) = self.end_incl().checked_div(other.start) else {
+                    return None;
+                };
+                let Some(end_excl) = end_incl.checked_add(1) else {
+                    return None;
+                };
+                Some(Self::new_unchecked(start, end_excl))
             }
         }
 
-        /// Minkowski subtraction: [a_start, a_end) - [b_start, b_end)
-        #[inline]
-        pub const fn minkowski_sub(self, other: Self) -> Option<Self> {
-            match self.start.checked_sub(other.end_incl()) {
-                Some(start) => match self.end_incl().checked_sub(other.start) {
-                    Some(end_incl) => match end_incl.checked_add(1) {
-                        Some(end_excl) => Some(Self::new_unchecked(start, end_excl)),
-                        None => None,
-                    },
-                    None => None,
-                },
-                None => None,
+        // --------------------------------------------------------
+        // Interval-to-scalar Minkowski operations
+        // --------------------------------------------------------
+        impl U64CO {
+            /// Add a scalar to an interval: [start, end) + n
+            #[inline]
+            pub const fn checked_minkowski_add_n(self, n: u64) -> Option<Self> {
+                let Some(start) = self.start.checked_add(n) else {
+                    return None;
+                };
+                let Some(end_excl) = self.end_excl.checked_add(n) else {
+                    return None;
+                };
+                Some(Self::new_unchecked(start, end_excl))
             }
-        }
 
-        /// Minkowski multiplication: [a_start, a_end) * [b_start, b_end)
-        #[inline]
-        pub const fn minkowski_mul(self, other: Self) -> Option<Self> {
-            match self.start.checked_mul(other.start) {
-                Some(start) => match self.end_incl().checked_mul(other.end_incl()) {
-                    Some(end_incl) => match end_incl.checked_add(1) {
-                        Some(end_excl) => Some(Self::new_unchecked(start, end_excl)),
-                        None => None,
-                    },
-                    None => None,
-                },
-                None => None,
+            /// Subtract a scalar from an interval: [start, end) - n
+            #[inline]
+            pub const fn checked_minkowski_sub_n(self, n: u64) -> Option<Self> {
+                let Some(start) = self.start.checked_sub(n) else {
+                    return None;
+                };
+                let Some(end_excl) = self.end_excl.checked_sub(n) else {
+                    return None;
+                };
+                Some(Self::new_unchecked(start, end_excl))
             }
-        }
 
-        /// Minkowski division: [a_start, a_end) / [b_start, b_end)
-        #[inline]
-        pub const fn minkowski_div(self, other: Self) -> Option<Self> {
-            if other.start == 0 {
-                return None; // avoid division by zero
+            /// Multiply an interval by a scalar: [start, end) * n
+            #[inline]
+            pub const fn checked_minkowski_mul_n(self, n: u64) -> Option<Self> {
+                let Some(start) = self.start.checked_mul(n) else {
+                    return None;
+                };
+                let Some(end_incl) = self.end_incl().checked_mul(n) else {
+                    return None;
+                };
+                let Some(end_excl) = end_incl.checked_add(1) else {
+                    return None;
+                };
+                Some(Self::new_unchecked(start, end_excl))
             }
-            match self.start.checked_div(other.end_incl()) {
-                Some(start) => match self.end_incl().checked_div(other.start) {
-                    Some(end_incl) => match end_incl.checked_add(1) {
-                        Some(end_excl) => Some(Self::new_unchecked(start, end_excl)),
-                        None => None,
-                    },
-                    None => None,
-                },
-                None => None,
+
+            /// Divide an interval by a scalar: [start, end) / n
+            #[inline]
+            pub const fn checked_minkowski_div_n(self, n: u64) -> Option<Self> {
+                if n == 0 {
+                    return None;
+                }
+
+                let start = self.start / n;
+                let end_incl = self.end_incl() / n;
+                let Some(end_excl) = end_incl.checked_add(1) else {
+                    return None;
+                };
+                Some(Self::new_unchecked(start, end_excl))
             }
         }
     }
 
-    // --------------------------------------------------------
-    // Interval-to-scalar Minkowski operations
-    // --------------------------------------------------------
-    impl U64CO {
-        /// Add a scalar to an interval: [start, end) + n
-        #[inline]
-        pub const fn minkowski_add_n(self, n: u64) -> Option<Self> {
-            match self.start.checked_add(n) {
-                Some(start) => match self.end_excl.checked_add(n) {
-                    Some(end_excl) => Some(Self::new_unchecked(start, end_excl)),
-                    None => None,
-                },
-                None => None,
+    pub mod saturating {
+        use super::*;
+
+        // --------------------------------------------------------
+        // Interval-to-interval Minkowski operations
+        // --------------------------------------------------------
+        impl U64CO {
+            #[inline]
+            pub const fn saturating_minkowski_add(self, other: Self) -> Option<Self> {
+                let start = self.start.saturating_add(other.start);
+                let end_excl = self.end_excl.saturating_add(other.end_incl());
+                Self::try_new(start, end_excl)
+            }
+
+            #[inline]
+            pub const fn saturating_minkowski_sub(self, other: Self) -> Option<Self> {
+                let start = self.start.saturating_sub(other.end_incl());
+                let end_excl = self.end_excl.saturating_sub(other.start);
+                Self::try_new(start, end_excl)
+            }
+
+            #[inline]
+            pub const fn saturating_minkowski_mul(self, other: Self) -> Option<Self> {
+                let start = self.start.saturating_mul(other.start);
+                let end_incl = self.end_incl().saturating_mul(other.end_incl());
+                let end_excl = end_incl.saturating_add(1);
+                Self::try_new(start, end_excl)
+            }
+
+            #[inline]
+            pub const fn saturating_minkowski_div(self, other: Self) -> Option<Self> {
+                if other.start == 0 {
+                    return None;
+                }
+
+                let start = self.start / other.end_incl();
+                let end_incl = self.end_incl() / other.start;
+                let end_excl = end_incl.saturating_add(1);
+                Self::try_new(start, end_excl)
             }
         }
 
-        /// Subtract a scalar from an interval: [start, end) - n
-        #[inline]
-        pub const fn minkowski_sub_n(self, n: u64) -> Option<Self> {
-            match self.start.checked_sub(n) {
-                Some(start) => match self.end_excl.checked_sub(n) {
-                    Some(end_excl) => Some(Self::new_unchecked(start, end_excl)),
-                    None => None,
-                },
-                None => None,
+        // --------------------------------------------------------
+        // Interval-to-scalar Minkowski operations
+        // --------------------------------------------------------
+        impl U64CO {
+            /// Saturating add scalar: [start, end) + n
+            #[inline]
+            pub const fn saturating_minkowski_add_n(self, n: u64) -> Option<Self> {
+                let start = self.start.saturating_add(n);
+                let end_excl = self.end_excl.saturating_add(n);
+                Self::try_new(start, end_excl)
             }
-        }
 
-        /// Multiply an interval by a scalar: [start, end) * n
-        #[inline]
-        pub const fn minkowski_mul_n(self, n: u64) -> Option<Self> {
-            match self.start.checked_mul(n) {
-                Some(start) => match self.end_incl().checked_mul(n) {
-                    Some(end_incl) => match end_incl.checked_add(1) {
-                        Some(end_excl) => Some(Self::new_unchecked(start, end_excl)),
-                        None => None,
-                    },
-                    None => None,
-                },
-                None => None,
+            /// Saturating sub scalar: [start, end) - n
+            #[inline]
+            pub const fn saturating_minkowski_sub_n(self, n: u64) -> Option<Self> {
+                let start = self.start.saturating_sub(n);
+                let end_excl = self.end_excl.saturating_sub(n);
+                Self::try_new(start, end_excl)
             }
-        }
 
-        /// Divide an interval by a scalar: [start, end) / n
-        #[inline]
-        pub const fn minkowski_div_n(self, n: u64) -> Option<Self> {
-            if n == 0 {
-                return None; // avoid division by zero
+            /// Saturating mul scalar: [start, end) * n
+            #[inline]
+            pub const fn saturating_minkowski_mul_n(self, n: u64) -> Option<Self> {
+                let start = self.start.saturating_mul(n);
+                let end_incl = self.end_incl().saturating_mul(n);
+                let end_excl = end_incl.saturating_add(1);
+                Self::try_new(start, end_excl)
             }
-            let start = self.start / n;
-            let end_incl = self.end_incl() / n;
-            match end_incl.checked_add(1) {
-                Some(end_excl) => Some(Self::new_unchecked(start, end_excl)),
-                None => None,
+
+            /// Saturating div scalar: [start, end) / n
+            #[inline]
+            pub const fn saturating_minkowski_div_n(self, n: u64) -> Option<Self> {
+                if n == 0 {
+                    return None;
+                }
+
+                let start = self.start / n;
+                let end_incl = self.end_incl() / n;
+                let end_excl = end_incl.saturating_add(1);
+                Self::try_new(start, end_excl)
             }
         }
     }
