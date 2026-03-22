@@ -33,7 +33,7 @@ pub struct U16CO {
 // low-level api: construction / accessors / predicates
 // ------------------------------------------------------------
 
-mod construction_accessors_predicates {
+mod basic {
 
     use super::*;
 

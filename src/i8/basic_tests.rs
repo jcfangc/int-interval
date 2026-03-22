@@ -1,0 +1,147 @@
+use super::*;
+
+mod unit_tests {
+    use super::*;
+
+    const MIN: i8 = i8::MIN;
+    const MAX: i8 = i8::MAX;
+    const NEG_ONE: i8 = -1;
+    const ZERO: i8 = 0;
+    const ONE: i8 = 1;
+
+    mod len {
+        use super::*;
+
+        #[test]
+        fn len_of_singleton_is_one() {
+            let iv = I8CO::try_new(ZERO, ONE).unwrap();
+            assert_eq!(iv.len(), 1);
+
+            let iv = I8CO::try_new(MIN, MIN + ONE).unwrap();
+            assert_eq!(iv.len(), 1);
+
+            let iv = I8CO::try_new(MAX - ONE, MAX).unwrap();
+            assert_eq!(iv.len(), 1);
+        }
+
+        #[test]
+        fn len_matches_basic_examples() {
+            let cases = [
+                (MIN, MIN + ONE, 1),
+                (MIN, MIN + 8, 8),
+                (-5, ZERO, 5),
+                (ZERO, ONE, 1),
+                (ZERO, 10, 10),
+                (5, 9, 4),
+                (MAX - ONE, MAX, 1),
+                (MIN, MAX, u8::MAX),
+            ];
+
+            for (start, end_excl, expect) in cases {
+                let iv = I8CO::try_new(start, end_excl).unwrap();
+                assert_eq!(iv.len(), expect, "case [{start}, {end_excl})");
+            }
+        }
+
+        #[test]
+        fn len_matches_iteration_count() {
+            let cases = [
+                (MIN, MIN + ONE),
+                (MIN, MIN + 8),
+                (-100, -90),
+                (-5, ZERO),
+                (NEG_ONE, ONE),
+                (ZERO, ONE),
+                (ZERO, 10),
+                (10, 20),
+                (MAX - ONE, MAX),
+            ];
+
+            for (start, end_excl) in cases {
+                let iv = I8CO::try_new(start, end_excl).unwrap();
+                assert_eq!(
+                    iv.len(),
+                    iv.iter().count() as u8,
+                    "case [{start}, {end_excl})"
+                );
+            }
+        }
+
+        #[test]
+        fn len_equals_end_minus_start_in_order_space() {
+            const SIGN_MASK: u8 = 1u8 << (i8::BITS - 1);
+
+            let cases = [
+                (MIN, MIN + ONE),
+                (MIN, NEG_ONE),
+                (MIN, ZERO),
+                (MIN, MAX),
+                (NEG_ONE, ZERO),
+                (NEG_ONE, ONE),
+                (ZERO, ONE),
+                (ZERO, MAX),
+                (MAX - ONE, MAX),
+            ];
+
+            for (start, end_excl) in cases {
+                let iv = I8CO::try_new(start, end_excl).unwrap();
+
+                let expect = ((end_excl as u8) ^ SIGN_MASK) - ((start as u8) ^ SIGN_MASK);
+
+                assert_eq!(iv.len(), expect, "case [{start}, {end_excl})");
+            }
+        }
+
+        #[test]
+        fn len_is_monotonic_under_interval_extension() {
+            let small = I8CO::try_new(-5, 5).unwrap();
+            let large = I8CO::try_new(-10, 10).unwrap();
+
+            assert!(small.len() < large.len());
+
+            let small = I8CO::try_new(MIN, -120).unwrap();
+            let large = I8CO::try_new(MIN, -100).unwrap();
+
+            assert!(small.len() < large.len());
+
+            let small = I8CO::try_new(100, 110).unwrap();
+            let large = I8CO::try_new(100, MAX).unwrap();
+
+            assert!(small.len() < large.len());
+        }
+
+        #[test]
+        fn len_of_maximal_i8_interval_is_255() {
+            let iv = I8CO::try_new(MIN, MAX).unwrap();
+            assert_eq!(iv.len(), u8::MAX);
+        }
+    }
+}
+
+mod prop_tests {
+    use proptest::prelude::*;
+
+    use super::*;
+
+    mod len {
+        use super::*;
+
+        proptest! {
+            #[test]
+            fn prop_len_is_positive_for_valid_intervals(start in any::<i8>(), end in any::<i8>()) {
+                if let Some(iv) = I8CO::try_new(start, end) {
+                    prop_assert!(iv.len() >= 1);
+                }
+            }
+
+            #[test]
+            fn prop_len_matches_order_space_difference(start in any::<i8>(), end in any::<i8>()) {
+                if let Some(iv) = I8CO::try_new(start, end) {
+                    const SIGN_MASK: u8 = 1u8 << (i8::BITS - 1);
+                    let expect = ((end as u8) ^ SIGN_MASK) - ((start as u8) ^ SIGN_MASK);
+                    prop_assert_eq!(iv.len(), expect);
+                }
+            }
+        }
+    }
+}

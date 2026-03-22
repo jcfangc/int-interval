@@ -6,6 +6,9 @@
 
 use crate::res::{OneTwo, ZeroOneTwo};
 
+
+#[cfg(test)]
+mod basic_tests;
 #[cfg(test)]
 mod between_tests;
 #[cfg(test)]
@@ -30,7 +33,7 @@ pub struct I64CO {
 // ------------------------------------------------------------
 // low-level api: construction / accessors / predicates
 // ------------------------------------------------------------
-mod construction_accessors_predicates {
+mod basic {
 
     use super::*;
 
@@ -68,7 +71,8 @@ mod construction_accessors_predicates {
 
         #[inline]
         pub const fn len(self) -> u64 {
-            self.end_excl as u64 - self.start as u64
+            const SIGN_MASK: u64 = 1 << (i64::BITS - 1);
+            ((self.end_excl as u64) ^ SIGN_MASK) - ((self.start as u64) ^ SIGN_MASK)
         }
 
         #[inline]
@@ -107,6 +111,7 @@ mod construction_accessors_predicates {
         }
     }
 }
+
 // ------------------------------------------------------------
 // interval algebra api: intersection / convex_hull / between / union / difference / symmetric_difference
 // ------------------------------------------------------------

@@ -6,6 +6,9 @@
 
 use crate::res::{OneTwo, ZeroOneTwo};
 
+
+#[cfg(test)]
+mod basic_tests;
 #[cfg(test)]
 mod between_tests;
 #[cfg(test)]
@@ -30,7 +33,7 @@ pub struct IsizeCO {
 // ------------------------------------------------------------
 // low-level api: construction / accessors / predicates
 // ------------------------------------------------------------
-mod construction_accessors_predicates {
+mod basic {
 
     use super::*;
 
@@ -68,7 +71,8 @@ mod construction_accessors_predicates {
 
         #[inline]
         pub const fn len(self) -> usize {
-            self.end_excl as usize - self.start as usize
+            const SIGN_MASK: usize = 1 << (isize::BITS - 1);
+            ((self.end_excl as usize) ^ SIGN_MASK) - ((self.start as usize) ^ SIGN_MASK)
         }
 
         #[inline]
@@ -107,6 +111,7 @@ mod construction_accessors_predicates {
         }
     }
 }
+
 // ------------------------------------------------------------
 // interval algebra api: intersection / convex_hull / between / union / difference / symmetric_difference
 // ------------------------------------------------------------

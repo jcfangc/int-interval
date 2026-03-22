@@ -1,5 +1,8 @@
 use crate::res::{OneTwo, ZeroOneTwo};
 
+
+#[cfg(test)]
+mod basic_tests;
 #[cfg(test)]
 mod between_tests;
 #[cfg(test)]
@@ -24,7 +27,7 @@ pub struct I8CO {
 // ------------------------------------------------------------
 // low-level api: construction / accessors / predicates
 // ------------------------------------------------------------
-mod construction_accessors_predicates {
+mod basic {
 
     use super::*;
 
@@ -62,7 +65,8 @@ mod construction_accessors_predicates {
 
         #[inline]
         pub const fn len(self) -> u8 {
-            self.end_excl as u8 - self.start as u8
+            const SIGN_MASK: u8 = 1 << (i8::BITS - 1);
+            ((self.end_excl as u8) ^ SIGN_MASK) - ((self.start as u8) ^ SIGN_MASK)
         }
 
         #[inline]
@@ -101,6 +105,7 @@ mod construction_accessors_predicates {
         }
     }
 }
+
 // ------------------------------------------------------------
 // interval algebra api: intersection / convex_hull / between / union / difference / symmetric_difference
 // ------------------------------------------------------------
