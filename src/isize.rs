@@ -68,7 +68,7 @@ mod construction_accessors_predicates {
 
         #[inline]
         pub const fn len(self) -> usize {
-            (self.end_excl - self.start) as usize
+            self.end_excl as usize - self.start as usize
         }
 
         #[inline]

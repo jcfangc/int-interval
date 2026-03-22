@@ -62,7 +62,7 @@ mod construction_accessors_predicates {
 
         #[inline]
         pub const fn len(self) -> u8 {
-            (self.end_excl - self.start) as u8
+            self.end_excl as u8 - self.start as u8
         }
 
         #[inline]
