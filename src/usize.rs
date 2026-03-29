@@ -7,6 +7,8 @@
 use crate::res::{OneTwo, ZeroOneTwo};
 
 #[cfg(test)]
+mod basic_tests;
+#[cfg(test)]
 mod between_tests;
 #[cfg(test)]
 mod checked_minkowski_tests;
@@ -72,6 +74,45 @@ mod basic {
         #[inline]
         pub const fn len(self) -> usize {
             self.end_excl - self.start
+        }
+
+        /// Returns the midpoint of the interval (floor division).
+        #[inline]
+        pub const fn midpoint(self) -> usize {
+            self.start + (self.len() / 2)
+        }
+
+        /// Construct a `UsizeCO` from a midpoint and a length.
+        ///
+        /// Returns `None` if the computed interval is invalid or overflows usize.
+        #[inline]
+        pub const fn checked_from_midpoint_len(mid: usize, len: usize) -> Option<Self> {
+            if len == 0 {
+                return None;
+            }
+            // Compute start = mid - floor(len/2)
+            let Some(start) = mid.checked_sub(len / 2) else {
+                return None;
+            };
+            // Compute end_excl = start + len, return None if overflow
+            let Some(end_excl) = start.checked_add(len) else {
+                return None;
+            };
+            Some(unsafe { Self::new_unchecked(start, end_excl) })
+        }
+
+        /// Saturating version: from midpoint + length, keeps start < end_excl
+        #[inline]
+        pub const fn saturating_from_midpoint_len(mid: usize, len: usize) -> Option<Self> {
+            if len == 0 {
+                return None;
+            }
+
+            let start = mid.saturating_sub(len / 2);
+            let end_excl = start.saturating_add(len);
+
+            // Use try_new to enforce start < end_excl invariant
+            Self::try_new(start, end_excl)
         }
 
         #[inline]
