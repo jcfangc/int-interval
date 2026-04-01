@@ -1,6 +1,5 @@
 use crate::res::{OneTwo, ZeroOneTwo};
 
-
 #[cfg(test)]
 mod basic_tests;
 #[cfg(test)]
@@ -67,6 +66,87 @@ mod basic {
         pub const fn len(self) -> u8 {
             const SIGN_MASK: u8 = 1 << (i8::BITS - 1);
             ((self.end_excl as u8) ^ SIGN_MASK) - ((self.start as u8) ^ SIGN_MASK)
+        }
+
+        /// Returns the midpoint of the interval `[start, end_excl)`,
+        /// using floor division if the length is even.
+        ///
+        /// # Guarantees
+        /// - `midpoint()` ∈ `[self.start, self.end_excl - 1]`
+        /// - Works for intervals with maximum length (entire `i8` range)
+        #[inline]
+        pub const fn midpoint(self) -> i8 {
+            self.start + (self.len() / 2) as i8
+        }
+
+        /// Constructs an `I8CO` interval from a midpoint and length (`u8`).
+        ///
+        /// # Parameters
+        /// - `mid`: the desired midpoint of the interval
+        /// - `len`: the desired length of the interval in units, must be `1..=u8::MAX`
+        ///
+        /// # Returns
+        /// - `Some(I8CO)` if the interval `[start, end_excl)` can be represented in `i8`
+        /// - `None` if `len = 0` or the computed `start` / `end_excl` would overflow `i8`
+        ///
+        /// # Guarantees
+        /// - Returned interval satisfies `start < end_excl`
+        /// - Maximum accepted input length is `u8::MAX`
+        #[inline]
+        pub const fn checked_from_midpoint_len(mid: i8, len: u8) -> Option<Self> {
+            if len == 0 {
+                return None;
+            }
+
+            let half = (len / 2) as i8;
+
+            let Some(start) = mid.checked_sub(half) else {
+                return None;
+            };
+            let Some(end_incl) = mid.checked_add(half) else {
+                return None;
+            };
+            let Some(end_excl) = end_incl.checked_add((len % 2) as i8) else {
+                return None;
+            };
+
+            // # Safety
+            // This function uses `unsafe { Self::new_unchecked(start, end_excl) }` internally.
+            // The safety is guaranteed by the following checks:
+            // 1. `mid.checked_sub(half)` ensures `start` does not underflow `i8`.
+            // 2. `mid.checked_add(the_other_half)` ensures `end_excl` does not overflow `i8`.
+            // 3. Because `half >= 0` and `the_other_half > 0`, we have `start < end_excl`.
+            // 4. Therefore, the half-open interval invariant `[start, end_excl)` is preserved.
+            Some(unsafe { Self::new_unchecked(start, end_excl) })
+        }
+
+        /// Constructs an `I8CO` interval from a midpoint and length (`u8`) with saturating semantics.
+        ///
+        /// # Parameters
+        /// - `mid`: the desired midpoint of the interval
+        /// - `len`: the desired length of the interval in units, must be `1..=u8::MAX`
+        ///
+        /// # Behavior
+        /// - Values are saturated at `i8::MIN` / `i8::MAX` to prevent overflow.
+        /// - If `len = 0`, returns `None`.
+        ///
+        /// # Guarantees
+        /// - Returned interval satisfies `start < end_excl`
+        /// - Maximum accepted input length is `u8::MAX`
+        /// - Fully compatible with codegen for other signed integer interval types
+        #[inline]
+        pub const fn saturating_from_midpoint_len(mid: i8, len: u8) -> Option<Self> {
+            if len == 0 {
+                return None;
+            }
+
+            let half = (len / 2) as i8;
+
+            let start = mid.saturating_sub(half);
+            let end_incl = mid.saturating_add(half);
+            let end_excl = end_incl.saturating_add((len % 2) as i8);
+
+            Self::try_new(start, end_excl)
         }
 
         #[inline]

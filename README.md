@@ -108,6 +108,30 @@ For bounded integer types, saturating results are still constrained by represent
 
 ---
 
+## Midpoint-Based Interval API
+
+`int-interval` provides APIs to construct intervals using a **midpoint and length** semantic, for all supported types (`U8CO/I8CO, U16CO/I16CO, …, UsizeCO/IsizeCO`).  
+
+### Construction
+
+```rust
+// Checked (returns None on overflow)
+let x = I16CO::checked_from_midpoint_len(-200, 255).unwrap();
+assert_eq!(x.start(), -327);
+assert_eq!(x.end_excl(), -72);
+
+// Saturating (clamps to MIN/MAX)
+let y = I64CO::saturating_from_midpoint_len(i64::MAX - 1, 5).unwrap();
+assert_eq!(y.end_excl(), i64::MAX);
+```
+
+* `checked_from_midpoint_len(mid, len)` returns `Some(interval)` if the requested interval fits in the type, otherwise `None`.
+* `saturating_from_midpoint_len(mid, len)` clamps values at `MIN/MAX` to prevent overflow.
+* Guarantees `start < end_excl` and preserves the half-open `[start, end)` semantics.
+* Zero-allocation, `const fn` friendly, and fully compatible with codegen for all integer types.
+
+---
+
 ## Features
 
 * Fast primitive interval algebra

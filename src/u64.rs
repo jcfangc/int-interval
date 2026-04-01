@@ -7,6 +7,8 @@
 use crate::res::{OneTwo, ZeroOneTwo};
 
 #[cfg(test)]
+mod basic_tests;
+#[cfg(test)]
 mod between_tests;
 #[cfg(test)]
 mod checked_minkowski_tests;
@@ -72,6 +74,53 @@ mod basic {
         #[inline]
         pub const fn len(self) -> u64 {
             self.end_excl - self.start
+        }
+
+        /// Returns the midpoint of the interval (floor division).
+        #[inline]
+        pub const fn midpoint(self) -> u64 {
+            self.start + (self.len() / 2)
+        }
+
+        /// Construct a `U64CO` from a midpoint and a length.
+        ///
+        /// Returns `None` if the computed interval is invalid or overflows u64.
+        #[inline]
+        pub const fn checked_from_midpoint_len(mid: u64, len: u64) -> Option<Self> {
+            if len == 0 {
+                return None;
+            }
+            // Compute start = mid - floor(len/2)
+            let Some(start) = mid.checked_sub(len / 2) else {
+                return None;
+            };
+            // Compute end_excl = start + len, return None if overflow
+            let Some(end_excl) = start.checked_add(len) else {
+                return None;
+            };
+
+            // # Safety
+            // This function uses `unsafe { Self::new_unchecked(start, end_excl) }` internally.
+            // The safety is guaranteed by the following checks:
+            // 1. `mid.checked_sub(len / 2)` ensures `start` does not underflow `u64`.
+            // 2. `start.checked_add(len)` ensures `end_excl` does not overflow `u64`.
+            // 3. Because `len > 0`, we have `start < end_excl`.
+            // 4. Therefore, the half-open interval invariant `[start, end_excl)` is preserved.
+            Some(unsafe { Self::new_unchecked(start, end_excl) })
+        }
+
+        /// Saturating version: from midpoint + length, keeps start < end_excl
+        #[inline]
+        pub const fn saturating_from_midpoint_len(mid: u64, len: u64) -> Option<Self> {
+            if len == 0 {
+                return None;
+            }
+
+            let start = mid.saturating_sub(len / 2);
+            let end_excl = start.saturating_add(len);
+
+            // Use try_new to enforce start < end_excl invariant
+            Self::try_new(start, end_excl)
         }
 
         #[inline]
