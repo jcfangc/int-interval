@@ -6,7 +6,6 @@
 
 use crate::res::{OneTwo, ZeroOneTwo};
 
-
 #[cfg(test)]
 mod basic_tests;
 #[cfg(test)]
@@ -73,6 +72,87 @@ mod basic {
         pub const fn len(self) -> usize {
             const SIGN_MASK: usize = 1 << (isize::BITS - 1);
             ((self.end_excl as usize) ^ SIGN_MASK) - ((self.start as usize) ^ SIGN_MASK)
+        }
+
+        /// Returns the midpoint of the interval `[start, end_excl)`,
+        /// using floor division if the length is even.
+        ///
+        /// # Guarantees
+        /// - `midpoint()` ∈ `[self.start, self.end_excl - 1]`
+        /// - Works for intervals with maximum length (entire `isize` range)
+        #[inline]
+        pub const fn midpoint(self) -> isize {
+            self.start + (self.len() / 2) as isize
+        }
+
+        /// Constructs an `IsizeCO` interval from a midpoint and length (`usize`).
+        ///
+        /// # Parameters
+        /// - `mid`: the desired midpoint of the interval
+        /// - `len`: the desired length of the interval in units, must be `1..=usize::MAX`
+        ///
+        /// # Returns
+        /// - `Some(IsizeCO)` if the interval `[start, end_excl)` can be represented in `isize`
+        /// - `None` if `len = 0` or the computed `start` / `end_excl` would overflow `isize`
+        ///
+        /// # Guarantees
+        /// - Returned interval satisfies `start < end_excl`
+        /// - Maximum accepted input length is `usize::MAX`
+        #[inline]
+        pub const fn checked_from_midpoint_len(mid: isize, len: usize) -> Option<Self> {
+            if len == 0 {
+                return None;
+            }
+
+            let half = (len / 2) as isize;
+
+            let Some(start) = mid.checked_sub(half) else {
+                return None;
+            };
+            let Some(end_incl) = mid.checked_add(half) else {
+                return None;
+            };
+            let Some(end_excl) = end_incl.checked_add((len % 2) as isize) else {
+                return None;
+            };
+
+            // # Safety
+            // This function uses `unsafe { Self::new_unchecked(start, end_excl) }` internally.
+            // The safety is guaranteed by the following checks:
+            // 1. `mid.checked_sub(half)` ensures `start` does not underflow `isize`.
+            // 2. `mid.checked_add(the_other_half)` ensures `end_excl` does not overflow `isize`.
+            // 3. Because `half >= 0` and `the_other_half > 0`, we have `start < end_excl`.
+            // 4. Therefore, the half-open interval invariant `[start, end_excl)` is preserved.
+            Some(unsafe { Self::new_unchecked(start, end_excl) })
+        }
+
+        /// Constructs an `IsizeCO` interval from a midpoint and length (`usize`) with saturating semantics.
+        ///
+        /// # Parameters
+        /// - `mid`: the desired midpoint of the interval
+        /// - `len`: the desired length of the interval in units, must be `1..=usize::MAX`
+        ///
+        /// # Behavior
+        /// - Values are saturated at `isize::MIN` / `isize::MAX` to prevent overflow.
+        /// - If `len = 0`, returns `None`.
+        ///
+        /// # Guarantees
+        /// - Returned interval satisfies `start < end_excl`
+        /// - Maximum accepted input length is `usize::MAX`
+        /// - Fully compatible with codegen for other signed integer interval types
+        #[inline]
+        pub const fn saturating_from_midpoint_len(mid: isize, len: usize) -> Option<Self> {
+            if len == 0 {
+                return None;
+            }
+
+            let half = (len / 2) as isize;
+
+            let start = mid.saturating_sub(half);
+            let end_incl = mid.saturating_add(half);
+            let end_excl = end_incl.saturating_add((len % 2) as isize);
+
+            Self::try_new(start, end_excl)
         }
 
         #[inline]

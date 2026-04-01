@@ -98,6 +98,14 @@ mod basic {
             let Some(end_excl) = start.checked_add(len) else {
                 return None;
             };
+
+            // # Safety
+            // This function uses `unsafe { Self::new_unchecked(start, end_excl) }` internally.
+            // The safety is guaranteed by the following checks:
+            // 1. `mid.checked_sub(len / 2)` ensures `start` does not underflow `u32`.
+            // 2. `start.checked_add(len)` ensures `end_excl` does not overflow `u32`.
+            // 3. Because `len > 0`, we have `start < end_excl`.
+            // 4. Therefore, the half-open interval invariant `[start, end_excl)` is preserved.
             Some(unsafe { Self::new_unchecked(start, end_excl) })
         }
 

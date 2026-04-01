@@ -122,13 +122,13 @@ mod unit_tests {
 
         #[test]
         fn midpoint_basic() {
-            let iv = span(0, 5);
+            let iv = I8CO::try_new(0, 5).unwrap();
             assert_eq!(iv.midpoint(), 2);
 
-            let iv = span(-5, 5);
+            let iv = I8CO::try_new(-5, 5).unwrap();
             assert_eq!(iv.midpoint(), 0);
 
-            let iv = span(MIN, MAX);
+            let iv = I8CO::try_new(MIN, MAX).unwrap();
             assert_eq!(iv.midpoint(), MIN + ((iv.len() / 2) as i8));
         }
 

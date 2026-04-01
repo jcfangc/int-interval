@@ -73,7 +73,7 @@ mod basic {
         ///
         /// # Guarantees
         /// - `midpoint()` ∈ `[self.start, self.end_excl - 1]`
-        /// - Works for intervals with maximum length 256 (entire `i8` range)
+        /// - Works for intervals with maximum length (entire `i8` range)
         #[inline]
         pub const fn midpoint(self) -> i8 {
             self.start + (self.len() / 2) as i8
@@ -83,23 +83,15 @@ mod basic {
         ///
         /// # Parameters
         /// - `mid`: the desired midpoint of the interval
-        /// - `len`: the desired length of the interval in units, must be `1..=256`
+        /// - `len`: the desired length of the interval in units, must be `1..=u8::MAX`
         ///
         /// # Returns
         /// - `Some(I8CO)` if the interval `[start, end_excl)` can be represented in `i8`
         /// - `None` if `len = 0` or the computed `start` / `end_excl` would overflow `i8`
         ///
-        /// # Computation
-        /// ```text
-        /// half = len / 2
-        /// the_other_half = half + (len % 2)
-        /// start = mid - half
-        /// end_excl = mid + the_other_half
-        /// ```
-        ///
         /// # Guarantees
         /// - Returned interval satisfies `start < end_excl`
-        /// - Maximum length allowed is 256 (covers entire `i8` range)
+        /// - Maximum accepted input length is `u8::MAX`
         #[inline]
         pub const fn checked_from_midpoint_len(mid: i8, len: u8) -> Option<Self> {
             if len == 0 {
@@ -107,12 +99,14 @@ mod basic {
             }
 
             let half = (len / 2) as i8;
-            let the_other_half = half + (len % 2) as i8;
 
             let Some(start) = mid.checked_sub(half) else {
                 return None;
             };
-            let Some(end_excl) = mid.checked_add(the_other_half) else {
+            let Some(end_incl) = mid.checked_add(half) else {
+                return None;
+            };
+            let Some(end_excl) = end_incl.checked_add((len % 2) as i8) else {
                 return None;
             };
 
@@ -130,7 +124,7 @@ mod basic {
         ///
         /// # Parameters
         /// - `mid`: the desired midpoint of the interval
-        /// - `len`: the desired length of the interval in units, must be `1..=256`
+        /// - `len`: the desired length of the interval in units, must be `1..=u8::MAX`
         ///
         /// # Behavior
         /// - Values are saturated at `i8::MIN` / `i8::MAX` to prevent overflow.
@@ -138,7 +132,7 @@ mod basic {
         ///
         /// # Guarantees
         /// - Returned interval satisfies `start < end_excl`
-        /// - Maximum length allowed is 256
+        /// - Maximum accepted input length is `u8::MAX`
         /// - Fully compatible with codegen for other signed integer interval types
         #[inline]
         pub const fn saturating_from_midpoint_len(mid: i8, len: u8) -> Option<Self> {
@@ -147,10 +141,10 @@ mod basic {
             }
 
             let half = (len / 2) as i8;
-            let the_other_half = half + (len % 2) as i8;
 
             let start = mid.saturating_sub(half);
-            let end_excl = mid.saturating_add(the_other_half);
+            let end_incl = mid.saturating_add(half);
+            let end_excl = end_incl.saturating_add((len % 2) as i8);
 
             Self::try_new(start, end_excl)
         }
