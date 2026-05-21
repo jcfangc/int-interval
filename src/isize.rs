@@ -23,7 +23,7 @@ mod symmetric_difference_tests;
 #[cfg(test)]
 mod union_tests;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct IsizeCO {
     start: isize,
     end_excl: isize,
@@ -50,39 +50,6 @@ mod basic {
         pub const unsafe fn new_unchecked(start: isize, end_excl: isize) -> Self {
             debug_assert!(start < end_excl);
             Self { start, end_excl }
-        }
-
-        #[inline]
-        pub const fn start(self) -> isize {
-            self.start
-        }
-
-        #[inline]
-        pub const fn end_excl(self) -> isize {
-            self.end_excl
-        }
-
-        #[inline]
-        pub const fn end_incl(self) -> isize {
-            // isize_low_bound =< start < end_excl
-            self.end_excl - 1
-        }
-
-        #[inline]
-        pub const fn len(self) -> usize {
-            const SIGN_MASK: usize = 1 << (isize::BITS - 1);
-            ((self.end_excl as usize) ^ SIGN_MASK) - ((self.start as usize) ^ SIGN_MASK)
-        }
-
-        /// Returns the midpoint of the interval `[start, end_excl)`,
-        /// using floor division if the length is even.
-        ///
-        /// # Guarantees
-        /// - `midpoint()` ∈ `[self.start, self.end_excl - 1]`
-        /// - Works for intervals with maximum length (entire `isize` range)
-        #[inline]
-        pub const fn midpoint(self) -> isize {
-            self.start + (self.len() / 2) as isize
         }
 
         /// Constructs an `IsizeCO` interval from a midpoint and length (`usize`).
@@ -153,6 +120,41 @@ mod basic {
             let end_excl = end_incl.saturating_add((len % 2) as isize);
 
             Self::try_new(start, end_excl)
+        }
+    }
+
+    impl IsizeCO {
+        #[inline]
+        pub const fn start(self) -> isize {
+            self.start
+        }
+
+        #[inline]
+        pub const fn end_excl(self) -> isize {
+            self.end_excl
+        }
+
+        #[inline]
+        pub const fn end_incl(self) -> isize {
+            // isize_low_bound =< start < end_excl
+            self.end_excl - 1
+        }
+
+        #[inline]
+        pub const fn len(self) -> usize {
+            const SIGN_MASK: usize = 1 << (isize::BITS - 1);
+            ((self.end_excl as usize) ^ SIGN_MASK) - ((self.start as usize) ^ SIGN_MASK)
+        }
+
+        /// Returns the midpoint of the interval `[start, end_excl)`,
+        /// using floor division if the length is even.
+        ///
+        /// # Guarantees
+        /// - `midpoint()` ∈ `[self.start, self.end_excl - 1]`
+        /// - Works for intervals with maximum length (entire `isize` range)
+        #[inline]
+        pub const fn midpoint(self) -> isize {
+            self.start + (self.len() / 2) as isize
         }
 
         #[inline]

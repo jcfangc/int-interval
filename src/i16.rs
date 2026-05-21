@@ -23,7 +23,7 @@ mod symmetric_difference_tests;
 #[cfg(test)]
 mod union_tests;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct I16CO {
     start: i16,
     end_excl: i16,
@@ -50,39 +50,6 @@ mod basic {
         pub const unsafe fn new_unchecked(start: i16, end_excl: i16) -> Self {
             debug_assert!(start < end_excl);
             Self { start, end_excl }
-        }
-
-        #[inline]
-        pub const fn start(self) -> i16 {
-            self.start
-        }
-
-        #[inline]
-        pub const fn end_excl(self) -> i16 {
-            self.end_excl
-        }
-
-        #[inline]
-        pub const fn end_incl(self) -> i16 {
-            // i16_low_bound =< start < end_excl
-            self.end_excl - 1
-        }
-
-        #[inline]
-        pub const fn len(self) -> u16 {
-            const SIGN_MASK: u16 = 1 << (i16::BITS - 1);
-            ((self.end_excl as u16) ^ SIGN_MASK) - ((self.start as u16) ^ SIGN_MASK)
-        }
-
-        /// Returns the midpoint of the interval `[start, end_excl)`,
-        /// using floor division if the length is even.
-        ///
-        /// # Guarantees
-        /// - `midpoint()` ∈ `[self.start, self.end_excl - 1]`
-        /// - Works for intervals with maximum length (entire `i16` range)
-        #[inline]
-        pub const fn midpoint(self) -> i16 {
-            self.start + (self.len() / 2) as i16
         }
 
         /// Constructs an `I16CO` interval from a midpoint and length (`u16`).
@@ -153,6 +120,41 @@ mod basic {
             let end_excl = end_incl.saturating_add((len % 2) as i16);
 
             Self::try_new(start, end_excl)
+        }
+    }
+
+    impl I16CO {
+        #[inline]
+        pub const fn start(self) -> i16 {
+            self.start
+        }
+
+        #[inline]
+        pub const fn end_excl(self) -> i16 {
+            self.end_excl
+        }
+
+        #[inline]
+        pub const fn end_incl(self) -> i16 {
+            // i16_low_bound =< start < end_excl
+            self.end_excl - 1
+        }
+
+        #[inline]
+        pub const fn len(self) -> u16 {
+            const SIGN_MASK: u16 = 1 << (i16::BITS - 1);
+            ((self.end_excl as u16) ^ SIGN_MASK) - ((self.start as u16) ^ SIGN_MASK)
+        }
+
+        /// Returns the midpoint of the interval `[start, end_excl)`,
+        /// using floor division if the length is even.
+        ///
+        /// # Guarantees
+        /// - `midpoint()` ∈ `[self.start, self.end_excl - 1]`
+        /// - Works for intervals with maximum length (entire `i16` range)
+        #[inline]
+        pub const fn midpoint(self) -> i16 {
+            self.start + (self.len() / 2) as i16
         }
 
         #[inline]
