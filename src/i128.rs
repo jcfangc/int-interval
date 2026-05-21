@@ -23,7 +23,7 @@ mod symmetric_difference_tests;
 #[cfg(test)]
 mod union_tests;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct I128CO {
     start: i128,
     end_excl: i128,
@@ -50,39 +50,6 @@ mod basic {
         pub const unsafe fn new_unchecked(start: i128, end_excl: i128) -> Self {
             debug_assert!(start < end_excl);
             Self { start, end_excl }
-        }
-
-        #[inline]
-        pub const fn start(self) -> i128 {
-            self.start
-        }
-
-        #[inline]
-        pub const fn end_excl(self) -> i128 {
-            self.end_excl
-        }
-
-        #[inline]
-        pub const fn end_incl(self) -> i128 {
-            // i128_low_bound =< start < end_excl
-            self.end_excl - 1
-        }
-
-        #[inline]
-        pub const fn len(self) -> u128 {
-            const SIGN_MASK: u128 = 1 << (i128::BITS - 1);
-            ((self.end_excl as u128) ^ SIGN_MASK) - ((self.start as u128) ^ SIGN_MASK)
-        }
-
-        /// Returns the midpoint of the interval `[start, end_excl)`,
-        /// using floor division if the length is even.
-        ///
-        /// # Guarantees
-        /// - `midpoint()` ∈ `[self.start, self.end_excl - 1]`
-        /// - Works for intervals with maximum length (entire `i128` range)
-        #[inline]
-        pub const fn midpoint(self) -> i128 {
-            self.start + (self.len() / 2) as i128
         }
 
         /// Constructs an `I128CO` interval from a midpoint and length (`u128`).
@@ -153,6 +120,41 @@ mod basic {
             let end_excl = end_incl.saturating_add((len % 2) as i128);
 
             Self::try_new(start, end_excl)
+        }
+    }
+
+    impl I128CO {
+        #[inline]
+        pub const fn start(self) -> i128 {
+            self.start
+        }
+
+        #[inline]
+        pub const fn end_excl(self) -> i128 {
+            self.end_excl
+        }
+
+        #[inline]
+        pub const fn end_incl(self) -> i128 {
+            // i128_low_bound =< start < end_excl
+            self.end_excl - 1
+        }
+
+        #[inline]
+        pub const fn len(self) -> u128 {
+            const SIGN_MASK: u128 = 1 << (i128::BITS - 1);
+            ((self.end_excl as u128) ^ SIGN_MASK) - ((self.start as u128) ^ SIGN_MASK)
+        }
+
+        /// Returns the midpoint of the interval `[start, end_excl)`,
+        /// using floor division if the length is even.
+        ///
+        /// # Guarantees
+        /// - `midpoint()` ∈ `[self.start, self.end_excl - 1]`
+        /// - Works for intervals with maximum length (entire `i128` range)
+        #[inline]
+        pub const fn midpoint(self) -> i128 {
+            self.start + (self.len() / 2) as i128
         }
 
         #[inline]

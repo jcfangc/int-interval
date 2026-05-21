@@ -22,25 +22,64 @@ const SIGNED_TYPES: &[(&str, &str)] = &[
     ("isize", "IsizeCO"),
 ];
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) enum EmitMode {
+    Write,
+    Check,
+}
+
+impl EmitMode {
+    #[inline]
+    fn is_check(self) -> bool {
+        matches!(self, Self::Check)
+    }
+}
+
 fn main() {
-    let mode = env::args()
-        .nth(1)
-        .unwrap_or_else(|| panic!("missing mode, expected one of: `signed`, `unsigned`, `all`"));
+    let mut args = env::args().skip(1);
+
+    let mode = args.next().unwrap_or_else(|| {
+        panic!("missing mode, expected one of: `signed`, `unsigned`, `all`, `check`")
+    });
+
+    let mut emit = EmitMode::Write;
+
+    let target = match mode.as_str() {
+        "signed" | "unsigned" | "all" => mode.as_str(),
+        "check" => {
+            emit = EmitMode::Check;
+            "all"
+        }
+        other => panic!(
+            "unsupported mode: {other}, expected one of: `signed`, `unsigned`, `all`, `check`"
+        ),
+    };
+
+    for arg in args {
+        match arg.as_str() {
+            "--check" | "check" => emit = EmitMode::Check,
+            other => panic!("unsupported arg: {other}, expected `--check`"),
+        }
+    }
 
     let root = workspace_root();
     let src = root.join("src");
 
-    match mode.as_str() {
-        "signed" => signed::generate(&src),
-        "unsigned" => unsigned::generate(&src),
+    match target {
+        "signed" => signed::generate(&src, emit),
+        "unsigned" => unsigned::generate(&src, emit),
         "all" => {
-            signed::generate(&src);
-            unsigned::generate(&src);
+            signed::generate(&src, emit);
+            unsigned::generate(&src, emit);
         }
-        other => panic!("unsupported mode: {other}, expected one of: `signed`, `unsigned`, `all`"),
+        _ => unreachable!(),
     }
 
-    write_lib(&src);
+    write_lib(&src, emit);
+
+    if emit.is_check() {
+        eprintln!("codegen check passed");
+    }
 }
 
 /// workspace root
@@ -53,7 +92,32 @@ fn workspace_root() -> PathBuf {
         .to_path_buf()
 }
 
-fn write_lib(src: &Path) {
+pub(crate) fn emit_file(path: impl AsRef<Path>, expected: String, mode: EmitMode) {
+    let path = path.as_ref();
+
+    match mode {
+        EmitMode::Write => {
+            fs::write(path, expected).unwrap();
+        }
+        EmitMode::Check => {
+            let actual = fs::read_to_string(path).unwrap_or_else(|err| {
+                panic!(
+                    "generated file is missing or unreadable: {}\nerror: {err}",
+                    path.display()
+                )
+            });
+
+            if actual != expected {
+                panic!(
+                    "generated file is stale: {}\nrun codegen and commit the updated output",
+                    path.display()
+                );
+            }
+        }
+    }
+}
+
+fn write_lib(src: &Path, mode: EmitMode) {
     let mut s = String::new();
 
     s.push_str("#![no_std]\n");
@@ -85,5 +149,5 @@ fn write_lib(src: &Path) {
         s.push_str(&format!("pub use {ty}::{name};\n"));
     }
 
-    fs::write(src.join("lib.rs"), s).unwrap();
+    emit_file(src.join("lib.rs"), s, mode);
 }

@@ -25,7 +25,7 @@ mod symmetric_difference_tests;
 #[cfg(test)]
 mod union_tests;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct UsizeCO {
     start: usize,
     end_excl: usize,
@@ -53,33 +53,6 @@ mod basic {
         pub const unsafe fn new_unchecked(start: usize, end_excl: usize) -> Self {
             debug_assert!(start < end_excl);
             Self { start, end_excl }
-        }
-
-        #[inline]
-        pub const fn start(self) -> usize {
-            self.start
-        }
-
-        #[inline]
-        pub const fn end_excl(self) -> usize {
-            self.end_excl
-        }
-
-        #[inline]
-        pub const fn end_incl(self) -> usize {
-            // usize_low_bound =< start < end_excl
-            self.end_excl - 1
-        }
-
-        #[inline]
-        pub const fn len(self) -> usize {
-            self.end_excl - self.start
-        }
-
-        /// Returns the midpoint of the interval (floor division).
-        #[inline]
-        pub const fn midpoint(self) -> usize {
-            self.start + (self.len() / 2)
         }
 
         /// Construct a `UsizeCO` from a midpoint and a length.
@@ -121,6 +94,35 @@ mod basic {
 
             // Use try_new to enforce start < end_excl invariant
             Self::try_new(start, end_excl)
+        }
+    }
+
+    impl UsizeCO {
+        #[inline]
+        pub const fn start(self) -> usize {
+            self.start
+        }
+
+        #[inline]
+        pub const fn end_excl(self) -> usize {
+            self.end_excl
+        }
+
+        #[inline]
+        pub const fn end_incl(self) -> usize {
+            // usize_low_bound =< start < end_excl
+            self.end_excl - 1
+        }
+
+        #[inline]
+        pub const fn len(self) -> usize {
+            self.end_excl - self.start
+        }
+
+        /// Returns the midpoint of the interval (floor division).
+        #[inline]
+        pub const fn midpoint(self) -> usize {
+            self.start + (self.len() / 2)
         }
 
         #[inline]
