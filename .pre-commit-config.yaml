@@ -14,3 +14,11 @@ repos:
         entry: cargo run -p codegen -- check
         language: system
         pass_filenames: false
+
+      - id: python-scripts-compile-check
+        name: python scripts compile check
+        entry: python3 -m compileall -q .github/scripts
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
