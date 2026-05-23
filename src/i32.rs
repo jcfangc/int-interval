@@ -7,21 +7,21 @@
 use crate::res::{OneTwo, ZeroOneTwo};
 
 #[cfg(test)]
-mod basic_tests;
+mod tests_for_basic;
 #[cfg(test)]
-mod between_tests;
+mod tests_for_between;
 #[cfg(test)]
-mod checked_minkowski_tests;
+mod tests_for_checked_minkowski;
 #[cfg(test)]
-mod convex_hull_tests;
+mod tests_for_convex_hull;
 #[cfg(test)]
-mod difference_tests;
+mod tests_for_difference;
 #[cfg(test)]
-mod intersection_tests;
+mod tests_for_intersection;
 #[cfg(test)]
-mod symmetric_difference_tests;
+mod tests_for_symmetric_difference;
 #[cfg(test)]
-mod union_tests;
+mod tests_for_union;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct I32CO {
