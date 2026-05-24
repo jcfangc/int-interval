@@ -65,3 +65,7 @@ harness = false
 [[bench]]
 name = "symmetric_difference"
 harness = false
+
+[[bench]]
+name = "contiguous"
+harness = false
