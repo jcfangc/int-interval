@@ -25,3 +25,7 @@ doctest = false
 [[bench]]
 name = "construct"
 harness = false
+
+[[bench]]
+name = "contains"
+harness = false
