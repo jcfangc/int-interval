@@ -124,6 +124,7 @@ fn write_lib(src: &Path, mode: EmitMode) {
     s.push_str("#[cfg(test)]\n");
     s.push_str("extern crate std;\n\n");
 
+    s.push_str("pub mod traits;\n");
     s.push_str("mod res;\n");
 
     s.push_str("mod u8;\n");

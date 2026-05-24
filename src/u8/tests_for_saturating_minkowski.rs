@@ -28,7 +28,7 @@ mod unit_tests {
     fn test_saturating_minkowski_mul_basic() {
         let a = U8CO::try_new(1, 4).unwrap();
         let b = U8CO::try_new(2, 3).unwrap();
-        let res = a.saturating_minkowski_mul(b).unwrap();
+        let res = a.saturating_minkowski_mul_hull(b).unwrap();
         assert_eq!(res.start(), 2);
         assert_eq!(res.end_excl(), 7);
     }
@@ -37,7 +37,7 @@ mod unit_tests {
     fn test_saturating_minkowski_div_basic() {
         let a = U8CO::try_new(4, 10).unwrap();
         let b = U8CO::try_new(2, 5).unwrap();
-        let res = a.saturating_minkowski_div(b).unwrap();
+        let res = a.saturating_minkowski_div_hull(b).unwrap();
         assert_eq!(res.start(), 1);
         assert_eq!(res.end_excl(), 5);
     }
@@ -46,7 +46,7 @@ mod unit_tests {
     fn test_saturating_minkowski_div_by_zero() {
         let a = U8CO::try_new(1, 5).unwrap();
         let b = U8CO::try_new(0, 3).unwrap();
-        assert!(a.saturating_minkowski_div(b).is_none());
+        assert!(a.saturating_minkowski_div_hull(b).is_none());
     }
 
     #[test]
@@ -60,59 +60,59 @@ mod unit_tests {
     fn test_saturating_mul_can_collapse_to_none() {
         let a = U8CO::try_new(u8::MAX - 5, u8::MAX).unwrap();
         let b = U8CO::try_new(2, 3).unwrap();
-        assert!(a.saturating_minkowski_mul(b).is_none());
+        assert!(a.saturating_minkowski_mul_hull(b).is_none());
     }
 
     #[test]
     fn test_saturating_add_n_basic() {
         let a = U8CO::try_new(3, 7).unwrap();
-        let res = a.saturating_minkowski_add_n(4).unwrap();
+        let res = a.saturating_minkowski_add_scalar(4).unwrap();
         assert_eq!(res, U8CO::try_new(7, 11).unwrap());
     }
 
     #[test]
     fn test_saturating_sub_n_basic() {
         let a = U8CO::try_new(7, 11).unwrap();
-        let res = a.saturating_minkowski_sub_n(4).unwrap();
+        let res = a.saturating_minkowski_sub_scalar(4).unwrap();
         assert_eq!(res, U8CO::try_new(3, 7).unwrap());
     }
 
     #[test]
     fn test_saturating_mul_n_basic() {
         let a = U8CO::try_new(2, 5).unwrap();
-        let res = a.saturating_minkowski_mul_n(3).unwrap();
+        let res = a.saturating_minkowski_mul_scalar_hull(3).unwrap();
         assert_eq!(res, U8CO::try_new(6, 13).unwrap());
     }
 
     #[test]
     fn test_saturating_div_n_basic() {
         let a = U8CO::try_new(6, 13).unwrap();
-        let res = a.saturating_minkowski_div_n(3).unwrap();
+        let res = a.saturating_minkowski_div_scalar_hull(3).unwrap();
         assert_eq!(res, U8CO::try_new(2, 5).unwrap());
     }
 
     #[test]
     fn test_saturating_div_n_by_zero() {
         let a = U8CO::try_new(1, 5).unwrap();
-        assert!(a.saturating_minkowski_div_n(0).is_none());
+        assert!(a.saturating_minkowski_div_scalar_hull(0).is_none());
     }
 
     #[test]
     fn test_saturating_add_n_can_collapse_to_none() {
         let a = U8CO::try_new(u8::MAX - 5, u8::MAX).unwrap();
-        assert!(a.saturating_minkowski_add_n(10).is_none());
+        assert!(a.saturating_minkowski_add_scalar(10).is_none());
     }
 
     #[test]
     fn test_saturating_sub_n_can_collapse_to_none() {
         let a = U8CO::try_new(1, 3).unwrap();
-        assert!(a.saturating_minkowski_sub_n(10).is_none());
+        assert!(a.saturating_minkowski_sub_scalar(10).is_none());
     }
 
     #[test]
     fn test_saturating_mul_n_can_collapse_to_none() {
         let a = U8CO::try_new(u8::MAX - 5, u8::MAX).unwrap();
-        assert!(a.saturating_minkowski_mul_n(2).is_none());
+        assert!(a.saturating_minkowski_mul_scalar_hull(2).is_none());
     }
 }
 
@@ -193,7 +193,7 @@ mod prop_tests {
 
         #[test]
         fn prop_saturating_mul_semantics(a in interval_strategy(), b in interval_strategy()) {
-            let got = a.saturating_minkowski_mul(b);
+            let got = a.saturating_minkowski_mul_hull(b);
 
             let expect_start = a.start().saturating_mul(b.start());
             let expect_end_excl = a.end_incl().saturating_mul(b.end_incl()).saturating_add(1);
@@ -223,7 +223,7 @@ mod prop_tests {
             a in interval_strategy(),
             b in interval_strategy()
         ) {
-            let got = a.saturating_minkowski_div(b);
+            let got = a.saturating_minkowski_div_hull(b);
 
             let expect_none =
                 b.start() == 0 ||
@@ -250,7 +250,7 @@ mod prop_tests {
 
         #[test]
         fn prop_saturating_add_n_semantics(a in interval_strategy(), n in scalar_strategy()) {
-            let got = a.saturating_minkowski_add_n(n);
+            let got = a.saturating_minkowski_add_scalar(n);
 
             let expect_start = a.start().saturating_add(n);
             let expect_end_excl = a.end_excl().saturating_add(n);
@@ -275,7 +275,7 @@ mod prop_tests {
 
         #[test]
         fn prop_saturating_sub_n_semantics(a in interval_strategy(), n in scalar_strategy()) {
-            let got = a.saturating_minkowski_sub_n(n);
+            let got = a.saturating_minkowski_sub_scalar(n);
 
             let expect_none =
                 a.start().saturating_sub(n) >= a.end_excl().saturating_sub(n);
@@ -295,7 +295,7 @@ mod prop_tests {
 
         #[test]
         fn prop_saturating_mul_n_semantics(a in interval_strategy(), n in scalar_strategy()) {
-            let got = a.saturating_minkowski_mul_n(n);
+            let got = a.saturating_minkowski_mul_scalar_hull(n);
 
             let expect_start = a.start().saturating_mul(n);
             let expect_end_excl = a.end_incl().saturating_mul(n).saturating_add(1);
@@ -320,7 +320,7 @@ mod prop_tests {
 
         #[test]
         fn prop_saturating_div_n_semantics(a in interval_strategy(), n in scalar_strategy()) {
-            let got = a.saturating_minkowski_div_n(n);
+            let got = a.saturating_minkowski_div_scalar_hull(n);
 
             let expect_none =
                 n == 0 ||
@@ -347,7 +347,7 @@ mod prop_tests {
 
         #[test]
         fn prop_mul_commutative(a in interval_strategy(), b in interval_strategy()) {
-            prop_assert_eq!(a.saturating_minkowski_mul(b), b.saturating_minkowski_mul(a));
+            prop_assert_eq!(a.saturating_minkowski_mul_hull(b), b.saturating_minkowski_mul_hull(a));
         }
     }
 }

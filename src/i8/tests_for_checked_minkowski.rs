@@ -28,7 +28,7 @@ mod unit_tests {
     fn test_minkowski_mul_basic() {
         let a = I8CO::try_new(-2, 3).unwrap(); // [-2,3)
         let b = I8CO::try_new(-1, 2).unwrap(); // [-1,2)
-        let res = a.checked_minkowski_mul(b).unwrap();
+        let res = a.checked_minkowski_mul_hull(b).unwrap();
         // 四个组合: -2*-1=2, -2*1=-2, 2*-1=-2, 2*1=2 -> min=-2, max=2
         assert_eq!(res.start(), -2);
         assert_eq!(res.end_excl(), 3); // max+1=2+1
@@ -38,7 +38,7 @@ mod unit_tests {
     fn test_minkowski_div_basic() {
         let a = I8CO::try_new(-4, 10).unwrap();
         let b = I8CO::try_new(2, 5).unwrap();
-        let res = a.checked_minkowski_div(b).unwrap();
+        let res = a.checked_minkowski_div_hull(b).unwrap();
         // 四个组合：-4/2=-2, -4/4=-1, 9/2=4, 9/4=2 -> min=-2, max=4
         assert_eq!(res.start(), -2);
         assert_eq!(res.end_excl(), 5); // max+1=4+1
@@ -48,7 +48,7 @@ mod unit_tests {
     fn test_minkowski_div_by_zero() {
         let a = I8CO::try_new(1, 5).unwrap();
         let b = I8CO::try_new(0, 3).unwrap();
-        assert!(a.checked_minkowski_div(b).is_none());
+        assert!(a.checked_minkowski_div_hull(b).is_none());
     }
 }
 
@@ -98,7 +98,7 @@ mod prop_tests {
 
         #[test]
         fn prop_mul_containment(a in interval_strategy(), b in interval_strategy()) {
-            if let Some(c) = a.checked_minkowski_mul(b) {
+            if let Some(c) = a.checked_minkowski_mul_hull(b) {
                 let xs = [a.start(), a.end_excl()-1];
                 let ys = [b.start(), b.end_excl()-1];
                 for &x in &xs {
@@ -113,7 +113,7 @@ mod prop_tests {
         #[test]
         fn prop_div_containment(a in interval_strategy(), b in interval_strategy()
             .prop_filter("non-zero start", |b| b.start() != 0)) {
-            if let Some(c) = a.checked_minkowski_div(b) {
+            if let Some(c) = a.checked_minkowski_div_hull(b) {
                 let xs = [a.start(), a.end_excl()-1];
                 let ys = [b.start(), b.end_excl()-1];
                 for &x in &xs {
@@ -134,8 +134,8 @@ mod prop_tests {
 
         #[test]
         fn prop_mul_commutative(a in interval_strategy(), b in interval_strategy()) {
-            let res1 = a.checked_minkowski_mul(b);
-            let res2 = b.checked_minkowski_mul(a);
+            let res1 = a.checked_minkowski_mul_hull(b);
+            let res2 = b.checked_minkowski_mul_hull(a);
             prop_assert_eq!(res1, res2);
         }
     }
