@@ -33,3 +33,7 @@ harness = false
 [[bench]]
 name = "contains_interval"
 harness = false
+
+[[bench]]
+name = "iter"
+harness = false
