@@ -41,3 +41,7 @@ harness = false
 [[bench]]
 name = "intersects"
 harness = false
+
+[[bench]]
+name = "intersection"
+harness = false
