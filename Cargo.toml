@@ -29,3 +29,7 @@ harness = false
 [[bench]]
 name = "contains"
 harness = false
+
+[[bench]]
+name = "contains_interval"
+harness = false
