@@ -49,3 +49,7 @@ harness = false
 [[bench]]
 name = "convex_hull"
 harness = false
+
+[[bench]]
+name = "between"
+harness = false
