@@ -12,24 +12,16 @@ readme = "README.md"
 keywords = ["interval", "range", "no_std", "integer", "algebra"]
 categories = ["data-structures", "no-std"]
 
-[dependencies]
 
 [dev-dependencies]
 divan = "0.1.21"
 proptest = "1.10.0"
 rust_intervals = "1.0.0"
 
+
 [lib]
 doctest = false
 
 [[bench]]
-name = "interval_ops"
-harness = false
-
-[[bench]]
-name = "interval_scenarios"
-harness = false
-
-[[bench]]
-name = "construct_only"
+name = "construct"
 harness = false
