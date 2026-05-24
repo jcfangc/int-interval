@@ -53,3 +53,7 @@ harness = false
 [[bench]]
 name = "between"
 harness = false
+
+[[bench]]
+name = "union"
+harness = false
