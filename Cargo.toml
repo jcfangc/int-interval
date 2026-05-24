@@ -37,3 +37,7 @@ harness = false
 [[bench]]
 name = "iter"
 harness = false
+
+[[bench]]
+name = "intersects"
+harness = false
