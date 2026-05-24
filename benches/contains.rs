@@ -1,46 +1,42 @@
-use divan::{Bencher, black_box};
+use std::hint::black_box;
+
+use criterion::{Criterion, criterion_group, criterion_main};
 use int_interval::I8CO;
 use rust_intervals::Interval;
-
-fn main() {
-    divan::main();
-}
 
 const START: i8 = -32;
 const END_EXCL: i8 = 96;
 
-macro_rules! contains_case {
-    ($group:ident, $value:expr) => {
-        #[divan::bench_group]
-        mod $group {
-            use super::*;
+const CASES: &[(&str, i8)] = &[
+    ("hit_start", START),
+    ("hit_middle", 16),
+    ("hit_end_incl", END_EXCL - 1),
+    ("miss_before", START - 1),
+    ("miss_end_excl", END_EXCL),
+];
 
-            #[divan::bench]
-            fn int_interval(bencher: Bencher) {
-                bencher
-                    .with_inputs(|| I8CO::try_new(START, END_EXCL).unwrap())
-                    .bench_values(|interval| interval.contains(black_box($value)));
-            }
+fn bench_contains(c: &mut Criterion) {
+    for &(case, value) in CASES {
+        let mut group = c.benchmark_group(format!("contains/{case}"));
 
-            #[divan::bench]
-            fn rust_intervals(bencher: Bencher) {
-                bencher
-                    .with_inputs(|| Interval::new_closed_open(START, END_EXCL))
-                    .bench_values(|interval| interval.contains(black_box($value)));
-            }
+        let interval = I8CO::try_new(START, END_EXCL).unwrap();
+        group.bench_function("int_interval", |b| {
+            b.iter(|| black_box(interval).contains(black_box(value)))
+        });
 
-            #[divan::bench]
-            fn std_range(bencher: Bencher) {
-                bencher
-                    .with_inputs(|| START..END_EXCL)
-                    .bench_values(|interval| interval.contains(&black_box($value)));
-            }
-        }
-    };
+        let interval = Interval::new_closed_open(START, END_EXCL);
+        group.bench_function("rust_intervals", |b| {
+            b.iter(|| black_box(&interval).contains(black_box(value)))
+        });
+
+        let interval = START..END_EXCL;
+        group.bench_function("std_range", |b| {
+            b.iter(|| black_box(&interval).contains(&black_box(value)))
+        });
+
+        group.finish();
+    }
 }
 
-contains_case!(hit_start, START);
-contains_case!(hit_middle, 16);
-contains_case!(hit_end_incl, END_EXCL - 1);
-contains_case!(miss_before, START - 1);
-contains_case!(miss_end_excl, END_EXCL);
+criterion_group!(benches, bench_contains);
+criterion_main!(benches);

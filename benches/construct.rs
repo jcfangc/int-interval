@@ -1,32 +1,35 @@
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use int_interval::I8CO;
 use rust_intervals::Interval;
 
-fn main() {
-    divan::main();
-}
-
 const VALID: (i8, i8) = (-32, 96);
 
-#[divan::bench_group]
-mod valid_closed_open {
-    use super::*;
-    use divan::black_box;
+fn valid_closed_open(c: &mut Criterion) {
+    let mut group = c.benchmark_group("construct/valid_closed_open");
 
-    #[divan::bench]
-    fn int_interval() -> Option<I8CO> {
-        let (start, end_excl) = black_box(VALID);
-        I8CO::try_new(start, end_excl)
-    }
+    group.bench_function("int_interval", |b| {
+        b.iter(|| {
+            let (start, end_excl) = black_box(VALID);
+            I8CO::try_new(start, end_excl)
+        });
+    });
 
-    #[divan::bench]
-    fn rust_intervals() -> Interval<i8> {
-        let (start, end_excl) = black_box(VALID);
-        Interval::new_closed_open(start, end_excl)
-    }
+    group.bench_function("rust_intervals", |b| {
+        b.iter(|| {
+            let (start, end_excl) = black_box(VALID);
+            Interval::new_closed_open(start, end_excl)
+        });
+    });
 
-    #[divan::bench]
-    fn std_range() -> core::ops::Range<i8> {
-        let (start, end_excl) = black_box(VALID);
-        start..end_excl
-    }
+    group.bench_function("std_range", |b| {
+        b.iter(|| {
+            let (start, end_excl) = black_box(VALID);
+            start..end_excl
+        });
+    });
+
+    group.finish();
 }
+
+criterion_group!(benches, valid_closed_open);
+criterion_main!(benches);

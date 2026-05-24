@@ -1,60 +1,45 @@
-use divan::{Bencher, black_box};
+use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use int_interval::I8CO;
 use rust_intervals::Interval;
-
-fn main() {
-    divan::main();
-}
-
-#[inline]
-fn bounds(start: i8, end_excl: i8) -> (i8, i8) {
-    black_box((start, end_excl))
-}
 
 #[inline]
 fn consume<I: Iterator<Item = i8>>(iter: I) -> i32 {
     iter.fold(0_i32, |acc, x| acc.wrapping_add(x as i32))
 }
 
-macro_rules! iter_case {
-    ($group:ident, $start:expr, $end_excl:expr, $items:expr) => {
-        #[divan::bench_group(items_count = $items)]
-        mod $group {
-            use super::*;
+fn iter(c: &mut Criterion) {
+    macro_rules! iter_case {
+        ($name:literal, $start:expr, $end_excl:expr, $items:expr) => {{
+            let interval = I8CO::try_new($start, $end_excl).unwrap();
+            let rust_interval = Interval::new_closed_open($start, $end_excl);
+            let range_bounds = ($start, $end_excl);
 
-            #[divan::bench]
-            fn int_interval(bencher: Bencher) {
-                bencher
-                    .with_inputs(|| {
-                        let (start, end_excl) = bounds($start, $end_excl);
-                        I8CO::try_new(start, end_excl).unwrap()
-                    })
-                    .bench_values(|interval| consume(interval.iter()));
-            }
+            let mut group = c.benchmark_group(concat!("iter/", $name));
+            group.throughput(Throughput::Elements($items as u64));
 
-            #[divan::bench]
-            fn rust_intervals(bencher: Bencher) {
-                bencher
-                    .with_inputs(|| {
-                        let (start, end_excl) = bounds($start, $end_excl);
-                        Interval::new_closed_open(start, end_excl)
-                    })
-                    .bench_values(|interval| consume(interval.iter()));
-            }
+            group.bench_function("int_interval", |b| {
+                b.iter(|| consume(black_box(interval).iter()));
+            });
 
-            #[divan::bench]
-            fn std_range(bencher: Bencher) {
-                bencher
-                    .with_inputs(|| {
-                        let (start, end_excl) = bounds($start, $end_excl);
-                        start..end_excl
-                    })
-                    .bench_values(consume);
-            }
-        }
-    };
+            group.bench_function("rust_intervals", |b| {
+                b.iter(|| consume(black_box(&rust_interval).iter()));
+            });
+
+            group.bench_function("std_range", |b| {
+                b.iter(|| {
+                    let (start, end_excl) = black_box(range_bounds);
+                    consume(start..end_excl)
+                });
+            });
+
+            group.finish();
+        }};
+    }
+
+    iter_case!("len_1", 0_i8, 1_i8, 1_usize);
+    iter_case!("len_16", -8_i8, 8_i8, 16_usize);
+    iter_case!("max_span", i8::MIN, i8::MAX, 255_usize);
 }
 
-iter_case!(len_1, 0_i8, 1_i8, 1_usize);
-iter_case!(len_16, -8_i8, 8_i8, 16_usize);
-iter_case!(max_span, i8::MIN, i8::MAX, 255_usize);
+criterion_group!(benches, iter);
+criterion_main!(benches);
