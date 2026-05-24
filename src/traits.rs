@@ -12,9 +12,27 @@ pub(crate) use forwarding::impl_co_forwarding;
 mod sealed;
 
 /// Built-in integer coordinate type accepted by closed-open intervals.
-pub trait IntPrimitive: sealed::Int + Copy + Ord + Eq + Debug {}
+pub trait IntPrimitive:
+    sealed::Int + Copy + Ord + Eq + Debug + Add<Output = Self> + Sub<Output = Self> + Sum<Self>
+{
+    fn as_f32(self) -> f32;
+    fn as_f64(self) -> f64;
+}
 
-impl<T> IntPrimitive for T where T: sealed::Int + Copy + Ord + Eq + Debug {}
+impl<T> IntPrimitive for T
+where
+    T: sealed::Int + Copy + Ord + Eq + Debug + Add<Output = Self> + Sub<Output = Self> + Sum<Self>,
+{
+    #[inline]
+    fn as_f32(self) -> f32 {
+        sealed::Int::as_f32(self)
+    }
+
+    #[inline]
+    fn as_f64(self) -> f64 {
+        sealed::Int::as_f64(self)
+    }
+}
 
 /// Built-in unsigned integer type used for exact interval measures.
 pub trait UnsignedPrimitive:
@@ -28,9 +46,12 @@ pub trait UnsignedPrimitive:
     + Sub<Output = Self>
     + Sum<Self>
 {
+    fn as_f32(self) -> f32;
+    fn as_f64(self) -> f64;
 }
 
-impl<T> UnsignedPrimitive for T where
+impl<T> UnsignedPrimitive for T
+where
     T: sealed::Unsigned
         + Copy
         + Ord
@@ -39,8 +60,17 @@ impl<T> UnsignedPrimitive for T where
         + Default
         + Add<Output = Self>
         + Sub<Output = Self>
-        + Sum<Self>
+        + Sum<Self>,
 {
+    #[inline]
+    fn as_f32(self) -> f32 {
+        sealed::Int::as_f32(self)
+    }
+
+    #[inline]
+    fn as_f64(self) -> f64 {
+        sealed::Int::as_f64(self)
+    }
 }
 
 /// Primitive types associated with a closed-open integer interval.
