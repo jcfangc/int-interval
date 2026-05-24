@@ -35,43 +35,9 @@ where
 }
 
 /// Built-in unsigned integer type used for exact interval measures.
-pub trait UnsignedPrimitive:
-    sealed::Unsigned
-    + Copy
-    + Ord
-    + Eq
-    + Debug
-    + Default
-    + Add<Output = Self>
-    + Sub<Output = Self>
-    + Sum<Self>
-{
-    fn as_f32(self) -> f32;
-    fn as_f64(self) -> f64;
-}
+pub trait UnsignedPrimitive: IntPrimitive + sealed::Unsigned + Default {}
 
-impl<T> UnsignedPrimitive for T
-where
-    T: sealed::Unsigned
-        + Copy
-        + Ord
-        + Eq
-        + Debug
-        + Default
-        + Add<Output = Self>
-        + Sub<Output = Self>
-        + Sum<Self>,
-{
-    #[inline]
-    fn as_f32(self) -> f32 {
-        sealed::Int::as_f32(self)
-    }
-
-    #[inline]
-    fn as_f64(self) -> f64 {
-        sealed::Int::as_f64(self)
-    }
-}
+impl<T> UnsignedPrimitive for T where T: IntPrimitive + sealed::Unsigned + Default {}
 
 /// Primitive types associated with a closed-open integer interval.
 pub trait COPrimitive {
