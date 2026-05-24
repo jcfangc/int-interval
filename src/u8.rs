@@ -107,18 +107,24 @@ mod basic {
             // u8_low_bound =< start < end_excl
             self.end_excl - 1
         }
+    }
 
+    impl U8CO {
         #[inline]
         pub const fn len(self) -> u8 {
             self.end_excl - self.start
         }
+    }
 
+    impl U8CO {
         /// Returns the midpoint of the interval (floor division).
         #[inline]
         pub const fn midpoint(self) -> u8 {
             self.start + (self.len() / 2)
         }
+    }
 
+    impl U8CO {
         #[inline]
         pub const fn contains(self, x: u8) -> bool {
             self.start <= x && x < self.end_excl
@@ -127,16 +133,6 @@ mod basic {
         #[inline]
         pub const fn contains_interval(self, other: Self) -> bool {
             self.start <= other.start && other.end_excl <= self.end_excl
-        }
-
-        #[inline]
-        pub const fn iter(self) -> core::ops::Range<u8> {
-            self.start..self.end_excl
-        }
-
-        #[inline]
-        pub const fn to_range(self) -> core::ops::Range<u8> {
-            self.start..self.end_excl
         }
 
         #[inline]
@@ -152,6 +148,18 @@ mod basic {
         #[inline]
         pub const fn is_contiguous_with(self, other: Self) -> bool {
             self.intersects(other) || self.is_adjacent(other)
+        }
+    }
+
+    impl U8CO {
+        #[inline]
+        pub const fn iter(self) -> core::ops::Range<u8> {
+            self.start..self.end_excl
+        }
+
+        #[inline]
+        pub const fn to_range(self) -> core::ops::Range<u8> {
+            self.start..self.end_excl
         }
     }
 }
@@ -340,7 +348,7 @@ pub mod minkowski {
 
             /// Minkowski multiplication: [a_start, a_end) * [b_start, b_end)
             #[inline]
-            pub const fn checked_minkowski_mul(self, other: Self) -> Option<Self> {
+            pub const fn checked_minkowski_mul_hull(self, other: Self) -> Option<Self> {
                 let Some(start) = self.start.checked_mul(other.start) else {
                     return None;
                 };
@@ -361,7 +369,7 @@ pub mod minkowski {
 
             /// Minkowski division: [a_start, a_end) / [b_start, b_end)
             #[inline]
-            pub const fn checked_minkowski_div(self, other: Self) -> Option<Self> {
+            pub const fn checked_minkowski_div_hull(self, other: Self) -> Option<Self> {
                 if other.start == 0 {
                     return None;
                 }
@@ -393,7 +401,7 @@ pub mod minkowski {
         impl U8CO {
             /// Add a scalar to an interval: [start, end) + n
             #[inline]
-            pub const fn checked_minkowski_add_n(self, n: u8) -> Option<Self> {
+            pub const fn checked_minkowski_add_scalar(self, n: u8) -> Option<Self> {
                 let Some(start) = self.start.checked_add(n) else {
                     return None;
                 };
@@ -409,7 +417,7 @@ pub mod minkowski {
 
             /// Subtract a scalar from an interval: [start, end) - n
             #[inline]
-            pub const fn checked_minkowski_sub_n(self, n: u8) -> Option<Self> {
+            pub const fn checked_minkowski_sub_scalar(self, n: u8) -> Option<Self> {
                 let Some(start) = self.start.checked_sub(n) else {
                     return None;
                 };
@@ -425,7 +433,7 @@ pub mod minkowski {
 
             /// Multiply an interval by a scalar: [start, end) * n
             #[inline]
-            pub const fn checked_minkowski_mul_n(self, n: u8) -> Option<Self> {
+            pub const fn checked_minkowski_mul_scalar_hull(self, n: u8) -> Option<Self> {
                 let Some(start) = self.start.checked_mul(n) else {
                     return None;
                 };
@@ -445,7 +453,7 @@ pub mod minkowski {
 
             /// Divide an interval by a scalar: [start, end) / n
             #[inline]
-            pub const fn checked_minkowski_div_n(self, n: u8) -> Option<Self> {
+            pub const fn checked_minkowski_div_scalar_hull(self, n: u8) -> Option<Self> {
                 if n == 0 {
                     return None;
                 }
@@ -487,7 +495,7 @@ pub mod minkowski {
             }
 
             #[inline]
-            pub const fn saturating_minkowski_mul(self, other: Self) -> Option<Self> {
+            pub const fn saturating_minkowski_mul_hull(self, other: Self) -> Option<Self> {
                 let start = self.start.saturating_mul(other.start);
                 let end_incl = self.end_incl().saturating_mul(other.end_incl());
                 let end_excl = end_incl.saturating_add(1);
@@ -495,7 +503,7 @@ pub mod minkowski {
             }
 
             #[inline]
-            pub const fn saturating_minkowski_div(self, other: Self) -> Option<Self> {
+            pub const fn saturating_minkowski_div_hull(self, other: Self) -> Option<Self> {
                 if other.start == 0 {
                     return None;
                 }
@@ -513,7 +521,7 @@ pub mod minkowski {
         impl U8CO {
             /// Saturating add scalar: [start, end) + n
             #[inline]
-            pub const fn saturating_minkowski_add_n(self, n: u8) -> Option<Self> {
+            pub const fn saturating_minkowski_add_scalar(self, n: u8) -> Option<Self> {
                 let start = self.start.saturating_add(n);
                 let end_excl = self.end_excl.saturating_add(n);
                 Self::try_new(start, end_excl)
@@ -521,7 +529,7 @@ pub mod minkowski {
 
             /// Saturating sub scalar: [start, end) - n
             #[inline]
-            pub const fn saturating_minkowski_sub_n(self, n: u8) -> Option<Self> {
+            pub const fn saturating_minkowski_sub_scalar(self, n: u8) -> Option<Self> {
                 let start = self.start.saturating_sub(n);
                 let end_excl = self.end_excl.saturating_sub(n);
                 Self::try_new(start, end_excl)
@@ -529,7 +537,7 @@ pub mod minkowski {
 
             /// Saturating mul scalar: [start, end) * n
             #[inline]
-            pub const fn saturating_minkowski_mul_n(self, n: u8) -> Option<Self> {
+            pub const fn saturating_minkowski_mul_scalar_hull(self, n: u8) -> Option<Self> {
                 let start = self.start.saturating_mul(n);
                 let end_incl = self.end_incl().saturating_mul(n);
                 let end_excl = end_incl.saturating_add(1);
@@ -538,7 +546,7 @@ pub mod minkowski {
 
             /// Saturating div scalar: [start, end) / n
             #[inline]
-            pub const fn saturating_minkowski_div_n(self, n: u8) -> Option<Self> {
+            pub const fn saturating_minkowski_div_scalar_hull(self, n: u8) -> Option<Self> {
                 if n == 0 {
                     return None;
                 }
@@ -551,3 +559,5 @@ pub mod minkowski {
         }
     }
 }
+
+crate::traits::impl_co_forwarding!(U8CO, u8, u8);

@@ -2,6 +2,7 @@
 #[cfg(test)]
 extern crate std;
 
+pub mod traits;
 mod res;
 mod u8;
 mod i8;

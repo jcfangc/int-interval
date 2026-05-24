@@ -30,7 +30,7 @@ mod unit_tests {
     fn test_minkowski_mul_basic() {
         let a = U8CO::try_new(1, 4).unwrap(); // [1,4)
         let b = U8CO::try_new(2, 3).unwrap(); // [2,3)
-        let res = a.checked_minkowski_mul(b).unwrap();
+        let res = a.checked_minkowski_mul_hull(b).unwrap();
         assert_eq!(res.start(), 2); // 1*2
         assert_eq!(res.end_excl(), 7); // (3*2)+1
     }
@@ -39,7 +39,7 @@ mod unit_tests {
     fn test_minkowski_div_basic() {
         let a = U8CO::try_new(4, 10).unwrap();
         let b = U8CO::try_new(2, 5).unwrap();
-        let res = a.checked_minkowski_div(b).unwrap();
+        let res = a.checked_minkowski_div_hull(b).unwrap();
         assert_eq!(res.start(), 1); // 4/4
         assert_eq!(res.end_excl(), 5); // 9/2 + 1
     }
@@ -48,7 +48,7 @@ mod unit_tests {
     fn test_minkowski_div_by_zero() {
         let a = U8CO::try_new(1, 5).unwrap();
         let b = U8CO::try_new(0, 3).unwrap();
-        assert!(a.checked_minkowski_div(b).is_none());
+        assert!(a.checked_minkowski_div_hull(b).is_none());
     }
 
     #[test]
@@ -56,7 +56,7 @@ mod unit_tests {
         let a = U8CO::try_new(250, u8::MAX).unwrap();
         let b = U8CO::try_new(10, 20).unwrap();
         assert!(a.checked_minkowski_add(b).is_none());
-        assert!(a.checked_minkowski_mul(b).is_none());
+        assert!(a.checked_minkowski_mul_hull(b).is_none());
     }
 }
 
@@ -131,7 +131,7 @@ mod prop_tests {
 
         #[test]
         fn prop_checked_mul_semantics(a in interval_strategy(), b in interval_strategy()) {
-            let got = a.checked_minkowski_mul(b);
+            let got = a.checked_minkowski_mul_hull(b);
 
             let expect_none =
                 a.start().checked_mul(b.start()).is_none()
@@ -163,7 +163,7 @@ mod prop_tests {
             a in interval_strategy(),
             b in interval_strategy().prop_filter("non-zero start", |b| b.start() != 0)
         ) {
-            let got = a.checked_minkowski_div(b);
+            let got = a.checked_minkowski_div_hull(b);
 
             prop_assert!(got.is_some());
 
@@ -186,7 +186,7 @@ mod prop_tests {
 
         #[test]
         fn prop_mul_commutative(a in interval_strategy(), b in interval_strategy()) {
-            prop_assert_eq!(a.checked_minkowski_mul(b), b.checked_minkowski_mul(a));
+            prop_assert_eq!(a.checked_minkowski_mul_hull(b), b.checked_minkowski_mul_hull(a));
         }
     }
 }
