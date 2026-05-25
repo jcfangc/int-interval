@@ -34,10 +34,27 @@ jobs:
           BENCH_PROFILE: report
         run: cargo bench
 
-      - name: Add Pages entry files
+      - name: Prepare Pages site
         run: |
+          set -euo pipefail
+
           test -f target/criterion/report/index.html
-          touch target/criterion/report/.nojekyll
+
+          cat > target/criterion/index.html <<'EOF'
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta http-equiv="refresh" content="0; url=report/index.html">
+              <title>Criterion.rs Benchmark Report</title>
+            </head>
+            <body>
+              <p><a href="report/index.html">Open Criterion.rs benchmark report</a></p>
+            </body>
+          </html>
+          EOF
+
+          touch target/criterion/.nojekyll
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -45,7 +62,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: target/criterion/report
+          path: target/criterion
 
   deploy:
     name: Deploy to GitHub Pages
