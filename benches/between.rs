@@ -37,5 +37,12 @@ fn bench_between(c: &mut Criterion) {
     }
 }
 
-criterion_group!(benches, bench_between);
+mod support;
+
+criterion_group! {
+    name = benches;
+    config = support::config();
+    targets = bench_between
+}
+
 criterion_main!(benches);

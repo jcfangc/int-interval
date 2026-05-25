@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
 use int_interval::I8CO;
 use rust_intervals::Interval;
 
@@ -41,5 +41,12 @@ fn iter(c: &mut Criterion) {
     iter_case!("max_span", i8::MIN, i8::MAX, 255_usize);
 }
 
-criterion_group!(benches, iter);
+mod support;
+
+criterion_group! {
+    name = benches;
+    config = support::config();
+    targets = iter
+}
+
 criterion_main!(benches);

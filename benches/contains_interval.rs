@@ -49,13 +49,18 @@ contains_interval_case!(contains_right_edge, (32, 96));
 contains_interval_case!(miss_left, (-64, 32));
 contains_interval_case!(miss_right, (32, 112));
 
-criterion_group!(
-    benches,
-    equal,
-    contains_strict,
-    contains_left_edge,
-    contains_right_edge,
-    miss_left,
-    miss_right,
-);
+mod support;
+
+criterion_group! {
+    name = benches;
+    config = support::config();
+    targets =
+        equal,
+        contains_strict,
+        contains_left_edge,
+        contains_right_edge,
+        miss_left,
+        miss_right,
+}
+
 criterion_main!(benches);

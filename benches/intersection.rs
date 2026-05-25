@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use int_interval::I8CO;
 use rust_intervals::Interval;
 
@@ -38,5 +38,12 @@ fn intersection(c: &mut Criterion) {
     intersection_case!("disjoint_right", (112, 127));
 }
 
-criterion_group!(benches, intersection);
+mod support;
+
+criterion_group! {
+    name = benches;
+    config = support::config();
+    targets = intersection
+}
+
 criterion_main!(benches);

@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
+use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use int_interval::I8CO;
 use rust_intervals::Interval;
 
@@ -57,18 +57,23 @@ symmetric_difference_case!(adjacent_right, (96, 112));
 symmetric_difference_case!(disjoint_left, (-96, -64));
 symmetric_difference_case!(disjoint_right, (112, 127));
 
-criterion_group!(
-    benches,
-    equal,
-    same_left,
-    same_right,
-    contained_strict,
-    contains_base,
-    overlap_left,
-    overlap_right,
-    adjacent_left,
-    adjacent_right,
-    disjoint_left,
-    disjoint_right,
-);
+mod support;
+
+criterion_group! {
+    name = benches;
+    config = support::config();
+    targets =
+        equal,
+        same_left,
+        same_right,
+        contained_strict,
+        contains_base,
+        overlap_left,
+        overlap_right,
+        adjacent_left,
+        adjacent_right,
+        disjoint_left,
+        disjoint_right,
+}
+
 criterion_main!(benches);

@@ -31,5 +31,12 @@ fn valid_closed_open(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, valid_closed_open);
+mod support;
+
+criterion_group! {
+    name = benches;
+    config = support::config();
+    targets = valid_closed_open
+}
+
 criterion_main!(benches);

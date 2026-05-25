@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
+use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use int_interval::I8CO;
 use rust_intervals::Interval;
 
@@ -48,14 +48,19 @@ convex_hull_case!(extends_right, (32, 112));
 convex_hull_case!(disjoint_left, (-96, -64));
 convex_hull_case!(disjoint_right, (112, 127));
 
-criterion_group!(
-    benches,
-    equal,
-    other_contained,
-    base_contained,
-    extends_left,
-    extends_right,
-    disjoint_left,
-    disjoint_right,
-);
+mod support;
+
+criterion_group! {
+    name = benches;
+    config = support::config();
+    targets =
+        equal,
+        other_contained,
+        base_contained,
+        extends_left,
+        extends_right,
+        disjoint_left,
+        disjoint_right,
+}
+
 criterion_main!(benches);

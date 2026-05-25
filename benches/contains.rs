@@ -38,5 +38,12 @@ fn bench_contains(c: &mut Criterion) {
     }
 }
 
-criterion_group!(benches, bench_contains);
+mod support;
+
+criterion_group! {
+    name = benches;
+    config = support::config();
+    targets = bench_contains
+}
+
 criterion_main!(benches);

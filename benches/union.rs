@@ -1,6 +1,6 @@
 use std::hint::black_box;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use int_interval::I8CO;
 use rust_intervals::Interval;
 
@@ -38,5 +38,12 @@ fn bench_union(c: &mut Criterion) {
     }
 }
 
-criterion_group!(benches, bench_union);
+mod support;
+
+criterion_group! {
+    name = benches;
+    config = support::config();
+    targets = bench_union
+}
+
 criterion_main!(benches);

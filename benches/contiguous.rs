@@ -37,5 +37,12 @@ fn contiguous(c: &mut Criterion) {
     contiguous_case!("gap_right", (97, 112));
 }
 
-criterion_group!(benches, contiguous);
+mod support;
+
+criterion_group! {
+    name = benches;
+    config = support::config();
+    targets = contiguous
+}
+
 criterion_main!(benches);
