@@ -12,24 +12,63 @@ readme = "README.md"
 keywords = ["interval", "range", "no_std", "integer", "algebra"]
 categories = ["data-structures", "no-std"]
 
-[dependencies]
 
 [dev-dependencies]
-divan = "0.1.21"
+criterion = { version = "4.7.0", package = "codspeed-criterion-compat", features = [
+    "html_reports",
+] }
 proptest = "1.10.0"
 rust_intervals = "1.0.0"
 
+
 [lib]
 doctest = false
+bench = false
 
 [[bench]]
-name = "interval_ops"
+name = "construct"
 harness = false
 
 [[bench]]
-name = "interval_scenarios"
+name = "contains"
 harness = false
 
 [[bench]]
-name = "construct_only"
+name = "contains_interval"
+harness = false
+
+[[bench]]
+name = "iter"
+harness = false
+
+[[bench]]
+name = "intersects"
+harness = false
+
+[[bench]]
+name = "intersection"
+harness = false
+
+[[bench]]
+name = "convex_hull"
+harness = false
+
+[[bench]]
+name = "between"
+harness = false
+
+[[bench]]
+name = "union"
+harness = false
+
+[[bench]]
+name = "difference"
+harness = false
+
+[[bench]]
+name = "symmetric_difference"
+harness = false
+
+[[bench]]
+name = "contiguous"
 harness = false
