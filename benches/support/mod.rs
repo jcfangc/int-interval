@@ -37,15 +37,20 @@ impl BenchProfile {
                 .without_plots()
                 .save_baseline(self.baseline()),
 
-            Self::Report => Criterion::default().save_baseline(self.baseline()),
+            Self::Report => Criterion::default()
+                .sample_size(40)
+                .warm_up_time(Duration::from_millis(500))
+                .measurement_time(Duration::from_secs(1))
+                .nresamples(20_000)
+                .save_baseline(self.baseline()),
         }
     }
 }
 
 /// Shared Criterion configuration.
 ///
-/// `BENCH_PROFILE=report` enables the formal report configuration.
-/// Missing `BENCH_PROFILE` defaults to the local quick configuration.
+/// `BENCH_PROFILE=report` generates the publishable HTML report.
+/// Missing `BENCH_PROFILE` defaults to fast local feedback.
 #[inline]
 pub(crate) fn config() -> Criterion {
     BenchProfile::current().criterion()
