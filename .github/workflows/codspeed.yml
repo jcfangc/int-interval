@@ -29,8 +29,8 @@ jobs:
       - name: Build benchmark targets
         run: cargo codspeed build -m simulation
 
-      - name: Run benchmarks
+      - name: Run owned regression benchmarks
         uses: CodSpeedHQ/action@v4
         with:
           mode: simulation
-          run: cargo codspeed run -m simulation
+          run: cargo codspeed run -m simulation 'int_interval$'

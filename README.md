@@ -1,5 +1,10 @@
 # int-interval
 
+[![Crates.io](https://img.shields.io/crates/v/int-interval.svg)](https://crates.io/crates/int-interval)
+[![Documentation](https://docs.rs/int-interval/badge.svg)](https://docs.rs/int-interval)
+[![License](https://img.shields.io/crates/l/int-interval.svg)](https://crates.io/crates/int-interval)
+[![CodSpeed](https://github.com/jcfangc/int-interval/actions/workflows/codspeed.yml/badge.svg?branch=main)](https://github.com/jcfangc/int-interval/actions/workflows/codspeed.yml)
+
 A zero-allocation, `no_std`-friendly half-open interval algebra library for primitive integers.
 
 - Half-open intervals `[start, end)`
