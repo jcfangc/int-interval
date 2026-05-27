@@ -1,9 +1,3 @@
-use core::{
-    fmt::Debug,
-    iter::Sum,
-    ops::{Add, Sub},
-};
-
 use crate::{OneTwo, ZeroOneTwo};
 
 pub(crate) mod forwarding;
@@ -12,16 +6,14 @@ pub(crate) use forwarding::impl_co_forwarding;
 mod sealed;
 
 /// Built-in integer coordinate type accepted by closed-open intervals.
-pub trait IntPrimitive:
-    sealed::Int + Copy + Ord + Eq + Debug + Add<Output = Self> + Sub<Output = Self> + Sum<Self>
-{
+pub trait IntPrimitive: sealed::Int {
     fn as_f32(self) -> f32;
     fn as_f64(self) -> f64;
 }
 
 impl<T> IntPrimitive for T
 where
-    T: sealed::Int + Copy + Ord + Eq + Debug + Add<Output = Self> + Sub<Output = Self> + Sum<Self>,
+    T: sealed::Int,
 {
     #[inline]
     fn as_f32(self) -> f32 {
@@ -35,9 +27,9 @@ where
 }
 
 /// Built-in unsigned integer type used for exact interval measures.
-pub trait UnsignedPrimitive: IntPrimitive + sealed::Unsigned + Default {}
+pub trait UnsignedPrimitive: IntPrimitive + sealed::Unsigned {}
 
-impl<T> UnsignedPrimitive for T where T: IntPrimitive + sealed::Unsigned + Default {}
+impl<T> UnsignedPrimitive for T where T: IntPrimitive + sealed::Unsigned {}
 
 /// Primitive types associated with a closed-open integer interval.
 pub trait COPrimitive {
