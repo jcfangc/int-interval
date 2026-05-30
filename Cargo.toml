@@ -16,6 +16,7 @@ categories = ["data-structures", "no-std"]
 [dev-dependencies]
 criterion = { version = "4.7.0", package = "codspeed-criterion-compat", features = [
     "html_reports",
+    "csv_output",
 ] }
 proptest = "1.10.0"
 rust_intervals = "1.0.0"
