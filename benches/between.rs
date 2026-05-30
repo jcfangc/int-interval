@@ -1,4 +1,4 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use int_interval::I8CO;
 use rust_intervals::Interval;
 
@@ -16,25 +16,25 @@ const CASES: &[(&str, (i8, i8))] = &[
 ];
 
 fn bench_between(c: &mut Criterion) {
-    for &(case, other) in CASES {
-        let mut group = c.benchmark_group(format!("between/{case}"));
+    let mut group = c.benchmark_group("between");
 
+    for &(case, other) in CASES {
         let lhs = I8CO::try_new(BASE.0, BASE.1).unwrap();
         let rhs = I8CO::try_new(other.0, other.1).unwrap();
 
-        group.bench_function("int_interval", |b| {
+        group.bench_function(BenchmarkId::new("int_interval", case), |b| {
             b.iter(|| black_box(lhs).between(black_box(rhs)))
         });
 
         let lhs = Interval::new_closed_open(BASE.0, BASE.1);
         let rhs = Interval::new_closed_open(other.0, other.1);
 
-        group.bench_function("rust_intervals", |b| {
+        group.bench_function(BenchmarkId::new("rust_intervals", case), |b| {
             b.iter(|| black_box(lhs).between(black_box(rhs)))
         });
-
-        group.finish();
     }
+
+    group.finish();
 }
 
 mod support;
