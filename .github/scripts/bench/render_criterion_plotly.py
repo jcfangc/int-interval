@@ -192,11 +192,37 @@ def render_index(data: Samples) -> None:
     (OUT / "index.html").write_text(html_text, encoding="utf-8")
 
 
+def render_site_index() -> None:
+    """Render the Pages root index."""
+    ROOT.mkdir(parents=True, exist_ok=True)
+
+    html_text = """<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Benchmark Reports</title>
+  </head>
+  <body>
+    <h1>Benchmark Reports</h1>
+    <ul>
+      <li><a href="report/index.html">Criterion.rs report</a></li>
+      <li><a href="compare-plotly/index.html">Plotly comparison overview</a></li>
+    </ul>
+  </body>
+</html>
+"""
+
+    (ROOT / "index.html").write_text(html_text, encoding="utf-8")
+    (ROOT / ".nojekyll").touch()
+
+
 def main() -> None:
     data = read_samples()
     if not data:
         raise SystemExit("no Criterion raw.csv files found under target/criterion")
+
     render_index(data)
+    render_site_index()
 
 
 if __name__ == "__main__":
