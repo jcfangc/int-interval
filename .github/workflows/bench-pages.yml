@@ -32,7 +32,9 @@ jobs:
       - name: Run Criterion benchmarks
         env:
           BENCH_PROFILE: report
-        run: cargo bench
+        run: |
+          rm -rf target/criterion
+          cargo bench
 
       - name: Render Plotly comparison report
         run: |
@@ -44,27 +46,12 @@ jobs:
         run: |
           set -euo pipefail
 
+          test -f target/criterion/index.html
+          test -f target/criterion/.nojekyll
           test -f target/criterion/report/index.html
           test -f target/criterion/compare-plotly/index.html
 
-          cat > target/criterion/index.html <<'EOF'
-          <!doctype html>
-          <html lang="en">
-            <head>
-              <meta charset="utf-8">
-              <title>Benchmark Reports</title>
-            </head>
-            <body>
-              <h1>Benchmark Reports</h1>
-              <ul>
-                <li><a href="report/index.html">Criterion.rs report</a></li>
-                <li><a href="compare-plotly/index.html">Plotly comparison histograms</a></li>
-              </ul>
-            </body>
-          </html>
-          EOF
-
-          touch target/criterion/.nojekyll
+          find target/criterion -maxdepth 3 -type f | sort | sed -n '1,120p'
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
