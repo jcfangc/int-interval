@@ -15,8 +15,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  gate:
+    name: Check version change
+    runs-on: ubuntu-latest
+
+    outputs:
+      should_run: ${{ steps.version.outputs.should_run }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check whether benchmark pages should run
+        id: version
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: python3 .github/scripts/bench/should_run_benchmark_pages.py
+
   build:
     name: Build Criterion report
+    needs: gate
+    if: needs.gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -64,6 +87,7 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     needs: build
+    if: needs.build.result == 'success'
     runs-on: ubuntu-latest
 
     environment:
