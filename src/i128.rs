@@ -123,6 +123,144 @@ mod basic {
         }
     }
 
+    #[inline]
+    const fn checked_end_excl_from_start_len(start: i128, len: u128) -> Option<i128> {
+        end_excl_from_start_len(start, len, false)
+    }
+
+    #[inline]
+    const fn saturating_end_excl_from_start_len(start: i128, len: u128) -> Option<i128> {
+        end_excl_from_start_len(start, len, true)
+    }
+
+    /// Computes the exclusive end bound for a signed start plus an unsigned length.
+    ///
+    /// This helper exists because the length type may represent values that do not
+    /// fit in the signed coordinate type. Therefore, directly casting `len` into
+    /// the coordinate type is not a valid general implementation.
+    ///
+    /// The computation is split around zero:
+    ///
+    /// - if `start < 0`, first consume the distance from `start` to zero;
+    /// - then place any remaining length on the non-negative side;
+    /// - if `start >= 0`, use the remaining representable room up to the signed
+    ///   coordinate maximum.
+    ///
+    /// No widening integer type is used. This is intentional, so the same control
+    /// flow can be emitted by codegen for other signed interval types.
+    ///
+    /// # Parameters
+    /// - `start`: inclusive start bound
+    /// - `len`: requested interval length
+    /// - `saturating`: whether overflow should clamp to the signed coordinate maximum
+    ///
+    /// # Returns
+    /// - `None` if `len == 0`;
+    /// - `None` if `saturating == false` and `start + len` would exceed the signed
+    ///   coordinate maximum;
+    /// - `Some(end_excl)` otherwise;
+    /// - when `saturating == true`, overflow is represented as the signed coordinate
+    ///   maximum.
+    ///
+    /// # Guarantees
+    /// - Never wraps signed or unsigned arithmetic.
+    /// - Never relies on a lossy unsigned-to-signed cast unless the value is known
+    ///   to fit in the signed coordinate type.
+    /// - Correctly handles intervals that cross zero.
+    /// - Correctly handles the signed coordinate minimum without evaluating its
+    ///   negation.
+    ///
+    /// # Non-guarantees
+    /// - This does not construct an interval value.
+    /// - This does not always guarantee `start < end_excl`.
+    ///   In saturating mode, a maximum start bound may return the same maximum as
+    ///   `end_excl`, which must later be rejected by the interval constructor.
+    /// - This does not guarantee the requested length is preserved in saturating
+    ///   mode; the result may be shorter.
+    /// - This does not provide a directly computable signed length for all
+    ///   successful intervals. Some valid logical lengths may exceed what the
+    ///   signed coordinate type can represent.
+    #[inline]
+    const fn end_excl_from_start_len(start: i128, len: u128, saturating: bool) -> Option<i128> {
+        if len == 0 {
+            return None;
+        }
+
+        if start < 0 {
+            let to_zero = if start == i128::MIN {
+                (i128::MAX as u128) + 1
+            } else {
+                (-start) as u128
+            };
+
+            if len < to_zero {
+                let Some(end_excl) = start.checked_add(len as i128) else {
+                    return None;
+                };
+                Some(end_excl)
+            } else if len == to_zero {
+                Some(0)
+            } else {
+                let rem = len - to_zero;
+
+                if rem > i128::MAX as u128 {
+                    if saturating { Some(i128::MAX) } else { None }
+                } else {
+                    Some(rem as i128)
+                }
+            }
+        } else {
+            let room = (i128::MAX - start) as u128;
+
+            if len > room {
+                if saturating { Some(i128::MAX) } else { None }
+            } else {
+                let Some(end_excl) = start.checked_add(len as i128) else {
+                    return None;
+                };
+                Some(end_excl)
+            }
+        }
+    }
+
+    impl I128CO {
+        /// Constructs an `I128CO` interval from a start position and length.
+        ///
+        /// The resulting interval is `[start, start + len)`.
+        ///
+        /// Handles signed cross-zero intervals without widening arithmetic.
+        /// For example, `start = -3, len = 5` produces `[-3, 2)`.
+        ///
+        /// Returns `None` if:
+        /// - `len == 0`;
+        /// - `start + len` would exceed `i128::MAX`.
+        #[inline]
+        pub const fn checked_from_start_len(start: i128, len: u128) -> Option<Self> {
+            let Some(end_excl) = checked_end_excl_from_start_len(start, len) else {
+                return None;
+            };
+
+            Some(unsafe { Self::new_unchecked(start, end_excl) })
+        }
+
+        /// Constructs an `I128CO` interval from a start position and length,
+        /// saturating the exclusive end bound at `i128::MAX`.
+        ///
+        /// The resulting interval is `[start, saturated_end_excl)`.
+        ///
+        /// Returns `None` if:
+        /// - `len == 0`;
+        /// - saturation still produces an empty interval, e.g. `start == i128::MAX`.
+        #[inline]
+        pub const fn saturating_from_start_len(start: i128, len: u128) -> Option<Self> {
+            let Some(end_excl) = saturating_end_excl_from_start_len(start, len) else {
+                return None;
+            };
+
+            Self::try_new(start, end_excl)
+        }
+    }
+
     impl I128CO {
         #[inline]
         pub const fn start(self) -> i128 {
