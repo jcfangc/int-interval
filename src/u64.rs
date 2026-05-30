@@ -55,6 +55,48 @@ mod basic {
             Self { start, end_excl }
         }
 
+        /// Construct a `U64CO` from a start position and a length.
+        ///
+        /// The resulting interval is `[start, start + len)`.
+        ///
+        /// Returns `None` if:
+        /// - `len == 0`;
+        /// - `start + len` overflows `u64`.
+        #[inline]
+        pub const fn checked_from_start_len(start: u64, len: u64) -> Option<Self> {
+            if len == 0 {
+                return None;
+            }
+
+            let Some(end_excl) = start.checked_add(len) else {
+                return None;
+            };
+
+            // SAFETY:
+            // `checked_add` guarantees no overflow, and `len > 0`
+            // guarantees `start < end_excl`.
+            Some(unsafe { Self::new_unchecked(start, end_excl) })
+        }
+
+        /// Construct a `U64CO` from a start position and a length,
+        /// saturating the exclusive end bound on overflow.
+        ///
+        /// The resulting interval is `[start, start.saturating_add(len))`.
+        ///
+        /// Returns `None` if:
+        /// - `len == 0`;
+        /// - saturation still produces an empty interval, e.g. `start == u64::MAX`.
+        #[inline]
+        pub const fn saturating_from_start_len(start: u64, len: u64) -> Option<Self> {
+            if len == 0 {
+                return None;
+            }
+
+            let end_excl = start.saturating_add(len);
+
+            Self::try_new(start, end_excl)
+        }
+
         /// Construct a `U64CO` from a midpoint and a length.
         ///
         /// Returns `None` if the computed interval is invalid or overflows u64.

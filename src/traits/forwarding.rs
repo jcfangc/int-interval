@@ -29,6 +29,18 @@ macro_rules! __impl_co_basic_forwarding {
             }
         }
 
+        impl $crate::traits::COStartLenConstruct for $interval {
+            #[inline]
+            fn checked_from_start_len(start: $coord, len: $measure) -> Option<Self> {
+                <$interval>::checked_from_start_len(start, len)
+            }
+
+            #[inline]
+            fn saturating_from_start_len(start: $coord, len: $measure) -> Option<Self> {
+                <$interval>::saturating_from_start_len(start, len)
+            }
+        }
+
         impl $crate::traits::COBounds for $interval {
             #[inline]
             fn start(self) -> $coord {

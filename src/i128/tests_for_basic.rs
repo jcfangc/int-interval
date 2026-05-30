@@ -6,14 +6,14 @@
 
 use super::*;
 
+const MIN: i128 = i128::MIN;
+const MAX: i128 = i128::MAX;
+const NEG_ONE: i128 = -1;
+const ZERO: i128 = 0;
+const ONE: i128 = 1;
+
 mod unit_tests {
     use super::*;
-
-    const MIN: i128 = i128::MIN;
-    const MAX: i128 = i128::MAX;
-    const NEG_ONE: i128 = -1;
-    const ZERO: i128 = 0;
-    const ONE: i128 = 1;
 
     mod len {
         use super::*;
@@ -184,6 +184,204 @@ mod unit_tests {
             assert!(iv.end_excl() <= MAX);
         }
     }
+
+    mod start_len_api {
+        use super::*;
+
+        const LEN_ONE: u128 = 1;
+        const LEN_TWO: u128 = 2;
+        const LEN_SMALL: u128 = 5;
+        const LEN_WIDE: u128 = 10;
+
+        const POS_ROOM_FROM_ZERO: u128 = MAX as u128;
+        const ZERO_CROSS_LEN_FROM_MIN: u128 = POS_ROOM_FROM_ZERO + LEN_ONE;
+        const MAX_INTERVAL_LEN: u128 = u128::MAX;
+
+        #[test]
+        fn checked_from_start_len_basic() {
+            let iv = I128CO::checked_from_start_len(ZERO, LEN_SMALL).unwrap();
+            assert_eq!(iv.start(), ZERO);
+            assert_eq!(iv.end_excl(), LEN_SMALL as i128);
+            assert_eq!(iv.len(), LEN_SMALL);
+
+            let start = -5;
+            let iv = I128CO::checked_from_start_len(start, LEN_SMALL).unwrap();
+            assert_eq!(iv.start(), start);
+            assert_eq!(iv.end_excl(), ZERO);
+            assert_eq!(iv.len(), LEN_SMALL);
+
+            let iv = I128CO::checked_from_start_len(start, LEN_WIDE).unwrap();
+            assert_eq!(iv.start(), start);
+            assert_eq!(iv.end_excl(), LEN_SMALL as i128);
+            assert_eq!(iv.len(), LEN_WIDE);
+        }
+
+        #[test]
+        fn checked_from_start_len_rejects_zero_len() {
+            assert!(I128CO::checked_from_start_len(ZERO, 0).is_none());
+            assert!(I128CO::checked_from_start_len(MIN, 0).is_none());
+            assert!(I128CO::checked_from_start_len(MAX, 0).is_none());
+        }
+
+        #[test]
+        fn checked_from_start_len_handles_negative_side() {
+            let iv = I128CO::checked_from_start_len(MIN, LEN_ONE).unwrap();
+            assert_eq!(iv.start(), MIN);
+            assert_eq!(iv.end_excl(), MIN + ONE);
+            assert_eq!(iv.len(), LEN_ONE);
+
+            let iv = I128CO::checked_from_start_len(MIN, LEN_WIDE).unwrap();
+            assert_eq!(iv.start(), MIN);
+            assert_eq!(iv.end_excl(), MIN + LEN_WIDE as i128);
+            assert_eq!(iv.len(), LEN_WIDE);
+
+            let iv = I128CO::checked_from_start_len(NEG_ONE, LEN_ONE).unwrap();
+            assert_eq!(iv.start(), NEG_ONE);
+            assert_eq!(iv.end_excl(), ZERO);
+            assert_eq!(iv.len(), LEN_ONE);
+        }
+
+        #[test]
+        fn checked_from_start_len_handles_cross_zero() {
+            let iv = I128CO::checked_from_start_len(NEG_ONE, LEN_TWO).unwrap();
+            assert_eq!(iv.start(), NEG_ONE);
+            assert_eq!(iv.end_excl(), ONE);
+            assert_eq!(iv.len(), LEN_TWO);
+
+            let start = -10;
+            let len = LEN_WIDE * 2;
+            let iv = I128CO::checked_from_start_len(start, len).unwrap();
+            assert_eq!(iv.start(), start);
+            assert_eq!(iv.end_excl(), 10);
+            assert_eq!(iv.len(), len);
+
+            let iv = I128CO::checked_from_start_len(MIN, ZERO_CROSS_LEN_FROM_MIN).unwrap();
+            assert_eq!(iv.start(), MIN);
+            assert_eq!(iv.end_excl(), ZERO);
+            assert_eq!(iv.len(), ZERO_CROSS_LEN_FROM_MIN);
+        }
+
+        #[test]
+        fn checked_from_start_len_accepts_maximal_interval() {
+            let iv = I128CO::checked_from_start_len(MIN, MAX_INTERVAL_LEN).unwrap();
+            assert_eq!(iv.start(), MIN);
+            assert_eq!(iv.end_excl(), MAX);
+            assert_eq!(iv.len(), MAX_INTERVAL_LEN);
+        }
+
+        #[test]
+        fn checked_from_start_len_rejects_positive_overflow() {
+            assert!(I128CO::checked_from_start_len(ZERO, POS_ROOM_FROM_ZERO + LEN_ONE).is_none());
+
+            assert!(I128CO::checked_from_start_len(ONE, POS_ROOM_FROM_ZERO).is_none());
+            assert!(I128CO::checked_from_start_len(MAX - ONE, LEN_TWO).is_none());
+            assert!(I128CO::checked_from_start_len(MAX, LEN_ONE).is_none());
+        }
+
+        #[test]
+        fn checked_from_start_len_rejects_cross_zero_overflow() {
+            let from_neg_one_overflow_len = POS_ROOM_FROM_ZERO + LEN_TWO;
+            assert!(I128CO::checked_from_start_len(NEG_ONE, from_neg_one_overflow_len).is_none());
+
+            let start = -10;
+            let to_zero = (-start) as u128;
+            let overflow_len = to_zero + POS_ROOM_FROM_ZERO + LEN_ONE;
+            assert!(I128CO::checked_from_start_len(start, overflow_len).is_none());
+        }
+
+        #[test]
+        fn saturating_from_start_len_basic() {
+            let iv = I128CO::saturating_from_start_len(ZERO, LEN_SMALL).unwrap();
+            assert_eq!(iv.start(), ZERO);
+            assert_eq!(iv.end_excl(), LEN_SMALL as i128);
+            assert_eq!(iv.len(), LEN_SMALL);
+
+            let start = -5;
+            let iv = I128CO::saturating_from_start_len(start, LEN_WIDE).unwrap();
+            assert_eq!(iv.start(), start);
+            assert_eq!(iv.end_excl(), LEN_SMALL as i128);
+            assert_eq!(iv.len(), LEN_WIDE);
+        }
+
+        #[test]
+        fn saturating_from_start_len_rejects_zero_len() {
+            assert!(I128CO::saturating_from_start_len(ZERO, 0).is_none());
+            assert!(I128CO::saturating_from_start_len(MIN, 0).is_none());
+            assert!(I128CO::saturating_from_start_len(MAX, 0).is_none());
+        }
+
+        #[test]
+        fn saturating_from_start_len_clamps_positive_overflow() {
+            let iv = I128CO::saturating_from_start_len(ZERO, POS_ROOM_FROM_ZERO + LEN_ONE).unwrap();
+            assert_eq!(iv.start(), ZERO);
+            assert_eq!(iv.end_excl(), MAX);
+            assert_eq!(iv.len(), POS_ROOM_FROM_ZERO);
+
+            let iv = I128CO::saturating_from_start_len(ONE, POS_ROOM_FROM_ZERO).unwrap();
+            assert_eq!(iv.start(), ONE);
+            assert_eq!(iv.end_excl(), MAX);
+            assert_eq!(iv.len(), POS_ROOM_FROM_ZERO - LEN_ONE);
+
+            let iv = I128CO::saturating_from_start_len(MAX - ONE, LEN_TWO).unwrap();
+            assert_eq!(iv.start(), MAX - ONE);
+            assert_eq!(iv.end_excl(), MAX);
+            assert_eq!(iv.len(), LEN_ONE);
+        }
+
+        #[test]
+        fn saturating_from_start_len_clamps_cross_zero_overflow() {
+            let from_neg_one_overflow_len = POS_ROOM_FROM_ZERO + LEN_TWO;
+
+            let iv = I128CO::saturating_from_start_len(NEG_ONE, from_neg_one_overflow_len).unwrap();
+            assert_eq!(iv.start(), NEG_ONE);
+            assert_eq!(iv.end_excl(), MAX);
+            assert_eq!(iv.len(), POS_ROOM_FROM_ZERO + LEN_ONE);
+
+            let start = -10;
+            let to_zero = (-start) as u128;
+            let overflow_len = to_zero + POS_ROOM_FROM_ZERO + LEN_ONE;
+
+            let iv = I128CO::saturating_from_start_len(start, overflow_len).unwrap();
+            assert_eq!(iv.start(), start);
+            assert_eq!(iv.end_excl(), MAX);
+            assert_eq!(iv.len(), to_zero + POS_ROOM_FROM_ZERO);
+        }
+
+        #[test]
+        fn saturating_from_start_len_rejects_empty_after_saturation() {
+            assert!(I128CO::saturating_from_start_len(MAX, LEN_ONE).is_none());
+            assert!(I128CO::saturating_from_start_len(MAX, MAX_INTERVAL_LEN).is_none());
+        }
+
+        #[test]
+        fn saturating_from_start_len_accepts_maximal_interval() {
+            let iv = I128CO::saturating_from_start_len(MIN, MAX_INTERVAL_LEN).unwrap();
+            assert_eq!(iv.start(), MIN);
+            assert_eq!(iv.end_excl(), MAX);
+            assert_eq!(iv.len(), MAX_INTERVAL_LEN);
+        }
+
+        #[test]
+        fn checked_from_start_len_matches_try_new_when_reconstructing() {
+            let cases = [
+                (MIN, MIN + ONE),
+                (MIN, ZERO),
+                (MIN, MAX),
+                (-10, 10),
+                (NEG_ONE, ONE),
+                (ZERO, ONE),
+                (ZERO, MAX),
+                (MAX - ONE, MAX),
+            ];
+
+            for (start, end_excl) in cases {
+                let base = I128CO::try_new(start, end_excl).unwrap();
+                let rebuilt = I128CO::checked_from_start_len(start, base.len()).unwrap();
+
+                assert_eq!(rebuilt, base, "case [{start}, {end_excl})");
+            }
+        }
+    }
 }
 
 mod prop_tests {
@@ -243,6 +441,139 @@ mod prop_tests {
                 if let Some(iv) = I128CO::saturating_from_midpoint_len(mid, len) {
                     prop_assert!(iv.start() < iv.end_excl());
                     prop_assert_eq!(iv.midpoint(), iv.start() + (iv.len()/2) as i128);
+                }
+            }
+        }
+    }
+
+    mod start_len_api {
+        use std::vec;
+        use std::vec::Vec;
+
+        use super::*;
+
+        const LEN_ZERO: u128 = 0;
+        const LEN_ONE: u128 = 1;
+        const LEN_TWO: u128 = LEN_ONE + LEN_ONE;
+
+        const POS_ROOM_FROM_ZERO: u128 = MAX as u128;
+        const ZERO_CROSS_LEN_FROM_MIN: u128 = POS_ROOM_FROM_ZERO + LEN_ONE;
+        const MAX_INTERVAL_LEN: u128 = u128::MAX;
+
+        fn edge_starts() -> Vec<i128> {
+            vec![MIN, MIN + ONE, NEG_ONE, ZERO, ONE, MAX - ONE, MAX]
+        }
+
+        fn edge_lens() -> Vec<u128> {
+            vec![
+                LEN_ZERO,
+                LEN_ONE,
+                LEN_TWO,
+                POS_ROOM_FROM_ZERO,
+                ZERO_CROSS_LEN_FROM_MIN,
+                MAX_INTERVAL_LEN - LEN_ONE,
+                MAX_INTERVAL_LEN,
+            ]
+        }
+
+        fn mixed_start() -> impl Strategy<Value = i128> {
+            prop_oneof![
+                3 => prop::sample::select(edge_starts()),
+                7 => any::<i128>(),
+            ]
+        }
+
+        fn mixed_len() -> impl Strategy<Value = u128> {
+            prop_oneof![
+                3 => prop::sample::select(edge_lens()),
+                7 => any::<u128>(),
+            ]
+        }
+
+        proptest! {
+            #[test]
+            fn prop_checked_from_start_len_preserves_start_and_len(
+                start in mixed_start(),
+                len in mixed_len(),
+            ) {
+                if let Some(iv) = I128CO::checked_from_start_len(start, len) {
+                    prop_assert_eq!(iv.start(), start);
+                    prop_assert_eq!(iv.len(), len);
+                    prop_assert!(iv.start() < iv.end_excl());
+                }
+            }
+
+            #[test]
+            fn prop_checked_from_start_len_reconstructs_existing_interval(
+                start in mixed_start(),
+                end_excl in mixed_start(),
+            ) {
+                if let Some(base) = I128CO::try_new(start, end_excl) {
+                    let rebuilt = I128CO::checked_from_start_len(base.start(), base.len());
+
+                    prop_assert_eq!(rebuilt, Some(base));
+                }
+            }
+
+            #[test]
+            fn prop_checked_from_start_len_rejects_zero_len(start in mixed_start()) {
+                prop_assert_eq!(I128CO::checked_from_start_len(start, LEN_ZERO), None);
+            }
+
+            #[test]
+            fn prop_saturating_from_start_len_preserves_invariant(
+                start in mixed_start(),
+                len in mixed_len(),
+            ) {
+                if let Some(iv) = I128CO::saturating_from_start_len(start, len) {
+                    prop_assert_eq!(iv.start(), start);
+                    prop_assert!(iv.start() < iv.end_excl());
+                    prop_assert!(iv.len() <= len);
+                }
+            }
+
+            #[test]
+            fn prop_saturating_from_start_len_matches_checked_when_checked_succeeds(
+                start in mixed_start(),
+                len in mixed_len(),
+            ) {
+                let checked = I128CO::checked_from_start_len(start, len);
+                let saturated = I128CO::saturating_from_start_len(start, len);
+
+                if checked.is_some() {
+                    prop_assert_eq!(saturated, checked);
+                }
+            }
+
+            #[test]
+            fn prop_saturating_from_start_len_rejects_zero_len(start in mixed_start()) {
+                prop_assert_eq!(I128CO::saturating_from_start_len(start, LEN_ZERO), None);
+            }
+
+            #[test]
+            fn prop_saturating_from_start_len_only_shortens_on_overflow(
+                start in mixed_start(),
+                len in mixed_len(),
+            ) {
+                let checked = I128CO::checked_from_start_len(start, len);
+                let saturated = I128CO::saturating_from_start_len(start, len);
+
+                match (checked, saturated) {
+                    (Some(exact), Some(clamped)) => {
+                        prop_assert_eq!(exact, clamped);
+                    }
+                    (None, Some(clamped)) => {
+                        prop_assert!(len > LEN_ZERO);
+                        prop_assert_eq!(clamped.start(), start);
+                        prop_assert_eq!(clamped.end_excl(), MAX);
+                        prop_assert!(clamped.len() < len);
+                    }
+                    (None, None) => {
+                        prop_assert!(len == LEN_ZERO || start == MAX);
+                    }
+                    (Some(_), None) => {
+                        prop_assert!(false, "saturating constructor rejected an exact interval");
+                    }
                 }
             }
         }

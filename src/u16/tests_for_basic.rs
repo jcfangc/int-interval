@@ -6,6 +6,240 @@
 
 use super::*;
 
+mod about_start_len {
+    use super::*;
+
+    mod unit_tests {
+        use super::*;
+
+        const MIN: u16 = u16::MIN;
+        const MAX: u16 = u16::MAX;
+        const ONE: u16 = 1;
+
+        fn span(lo: u16, hi: u16) -> U16CO {
+            U16CO::try_new(lo, hi).unwrap()
+        }
+
+        #[test]
+        fn checked_from_start_len_basic() {
+            let iv = U16CO::checked_from_start_len(10, 5).unwrap();
+            assert_eq!(iv, span(10, 15));
+            assert_eq!(iv.start(), 10);
+            assert_eq!(iv.end_excl(), 15);
+            assert_eq!(iv.len(), 5);
+
+            assert!(U16CO::checked_from_start_len(10, 0).is_none());
+        }
+
+        #[test]
+        fn checked_from_start_len_accepts_max_end_excl() {
+            let len = 5;
+            let start = MAX - len;
+
+            let iv = U16CO::checked_from_start_len(start, len).unwrap();
+
+            assert_eq!(iv, span(start, MAX));
+            assert_eq!(iv.start(), start);
+            assert_eq!(iv.end_excl(), MAX);
+            assert_eq!(iv.len(), len);
+        }
+
+        #[test]
+        fn checked_from_start_len_rejects_overflow() {
+            assert!(U16CO::checked_from_start_len(MAX, ONE).is_none());
+            assert!(U16CO::checked_from_start_len(MAX - ONE, 2).is_none());
+            assert!(U16CO::checked_from_start_len(MAX - 5, 6).is_none());
+        }
+
+        #[test]
+        fn saturating_from_start_len_basic() {
+            let iv = U16CO::saturating_from_start_len(10, 5).unwrap();
+
+            assert_eq!(iv, span(10, 15));
+            assert_eq!(iv.start(), 10);
+            assert_eq!(iv.end_excl(), 15);
+            assert_eq!(iv.len(), 5);
+
+            assert!(U16CO::saturating_from_start_len(10, 0).is_none());
+        }
+
+        #[test]
+        fn saturating_from_start_len_accepts_exact_max_end_excl() {
+            let len = 5;
+            let start = MAX - len;
+
+            let iv = U16CO::saturating_from_start_len(start, len).unwrap();
+
+            assert_eq!(iv, span(start, MAX));
+            assert_eq!(iv.start(), start);
+            assert_eq!(iv.end_excl(), MAX);
+            assert_eq!(iv.len(), len);
+        }
+
+        #[test]
+        fn saturating_from_start_len_clamps_end() {
+            let exact_len = 5;
+            let requested_len = exact_len + ONE;
+            let start = MAX - exact_len;
+
+            let iv = U16CO::saturating_from_start_len(start, requested_len).unwrap();
+
+            assert_eq!(iv, span(start, MAX));
+            assert_eq!(iv.start(), start);
+            assert_eq!(iv.end_excl(), MAX);
+            assert_eq!(iv.len(), exact_len);
+            assert!(iv.len() < requested_len);
+        }
+
+        #[test]
+        fn saturating_from_start_len_rejects_empty_after_saturation() {
+            assert!(U16CO::saturating_from_start_len(MAX, ONE).is_none());
+            assert!(U16CO::saturating_from_start_len(MAX, MAX).is_none());
+        }
+
+        #[test]
+        fn checked_from_start_len_reconstructs_existing_interval() {
+            let cases = [
+                (MIN, MIN + ONE),
+                (MIN, 10),
+                (10, 20),
+                (MAX - 10, MAX),
+                (MAX - ONE, MAX),
+            ];
+
+            for (start, end_excl) in cases {
+                let base = span(start, end_excl);
+                let rebuilt = U16CO::checked_from_start_len(start, base.len()).unwrap();
+
+                assert_eq!(rebuilt, base, "case [{start}, {end_excl})");
+            }
+        }
+    }
+
+    mod prop_tests {
+        use std::{vec, vec::Vec};
+
+        use super::*;
+        use proptest::prelude::*;
+
+        fn edge_values() -> Vec<u16> {
+            let mut v = vec![
+                u16::MIN,
+                u16::MIN.saturating_add(1),
+                1,
+                u16::MAX.saturating_sub(1),
+                u16::MAX,
+            ];
+            v.sort_unstable();
+            v.dedup();
+            v
+        }
+
+        fn mixed_scalar() -> impl Strategy<Value = u16> {
+            prop_oneof! {
+                3 => prop::sample::select(edge_values()),
+                7 => any::<u16>(),
+            }
+        }
+
+        proptest! {
+            #[test]
+            fn checked_from_start_len_matches_checked_add(
+                start in mixed_scalar(),
+                len in mixed_scalar(),
+            ) {
+                let got = U16CO::checked_from_start_len(start, len);
+
+                let expected = if len == 0 {
+                    None
+                } else {
+                    start
+                        .checked_add(len)
+                        .and_then(|end_excl| U16CO::try_new(start, end_excl))
+                };
+
+                prop_assert_eq!(got, expected);
+            }
+
+            #[test]
+            fn checked_from_start_len_preserves_exact_len(
+                start in mixed_scalar(),
+                len in mixed_scalar(),
+            ) {
+                if let Some(iv) = U16CO::checked_from_start_len(start, len) {
+                    prop_assert_eq!(iv.start(), start);
+                    prop_assert_eq!(iv.len(), len);
+                    prop_assert_eq!(iv.end_excl(), start + len);
+                    prop_assert!(iv.start() < iv.end_excl());
+                }
+            }
+
+            #[test]
+            fn checked_from_start_len_reconstructs_existing_interval(
+                start in mixed_scalar(),
+                end_excl in mixed_scalar(),
+            ) {
+                if let Some(base) = U16CO::try_new(start, end_excl) {
+                    let rebuilt = U16CO::checked_from_start_len(base.start(), base.len());
+
+                    prop_assert_eq!(rebuilt, Some(base));
+                }
+            }
+
+            #[test]
+            fn checked_from_start_len_rejects_zero_len(start in mixed_scalar()) {
+                prop_assert_eq!(U16CO::checked_from_start_len(start, 0), None);
+            }
+
+            #[test]
+            fn saturating_from_start_len_matches_saturating_add(
+                start in mixed_scalar(),
+                len in mixed_scalar(),
+            ) {
+                let got = U16CO::saturating_from_start_len(start, len);
+
+                let expected = if len == 0 {
+                    None
+                } else {
+                    U16CO::try_new(start, start.saturating_add(len))
+                };
+
+                prop_assert_eq!(got, expected);
+            }
+
+            #[test]
+            fn saturating_from_start_len_preserves_invariant(
+                start in mixed_scalar(),
+                len in mixed_scalar(),
+            ) {
+                if let Some(iv) = U16CO::saturating_from_start_len(start, len) {
+                    prop_assert_eq!(iv.start(), start);
+                    prop_assert!(iv.start() < iv.end_excl());
+                    prop_assert!(iv.len() <= len);
+                }
+            }
+
+            #[test]
+            fn saturating_from_start_len_matches_checked_when_checked_succeeds(
+                start in mixed_scalar(),
+                len in mixed_scalar(),
+            ) {
+                let checked = U16CO::checked_from_start_len(start, len);
+                let saturated = U16CO::saturating_from_start_len(start, len);
+
+                if checked.is_some() {
+                    prop_assert_eq!(saturated, checked);
+                }
+            }
+
+            #[test]
+            fn saturating_from_start_len_rejects_zero_len(start in mixed_scalar()) {
+                prop_assert_eq!(U16CO::saturating_from_start_len(start, 0), None);
+            }
+        }
+    }
+}
+
 mod about_midpoint {
     use super::*;
 

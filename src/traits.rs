@@ -79,6 +79,33 @@ pub trait COMidpointConstruct: COConstruct {
     fn saturating_from_midpoint_len(mid: Self::CoordType, len: Self::MeasureType) -> Option<Self>;
 }
 
+/// Construction capability based on a start bound and an exact interval measure.
+///
+/// `len` is represented by the interval's exact unsigned measure type.
+pub trait COStartLenConstruct: COConstruct {
+    /// Constructs an interval starting at `start` with exact length `len`.
+    ///
+    /// The resulting interval is:
+    ///
+    /// ```text
+    /// [start, start + len)
+    /// ```
+    ///
+    /// Returns `None` when `len` is zero or when the resulting exclusive end
+    /// bound cannot be represented by `CoordType`.
+    fn checked_from_start_len(start: Self::CoordType, len: Self::MeasureType) -> Option<Self>;
+
+    /// Constructs an interval starting at `start` with saturating endpoint
+    /// arithmetic.
+    ///
+    /// The resulting interval starts at `start`, while the exclusive end bound
+    /// is clamped to the maximum representable coordinate when needed.
+    ///
+    /// Returns `None` when `len` is zero or saturation collapses the result
+    /// into an empty interval.
+    fn saturating_from_start_len(start: Self::CoordType, len: Self::MeasureType) -> Option<Self>;
+}
+
 /// Boundary access capability for a closed-open interval.
 pub trait COBounds: COPrimitive + Copy + Ord + Eq + core::fmt::Debug {
     /// Returns the inclusive lower bound.
