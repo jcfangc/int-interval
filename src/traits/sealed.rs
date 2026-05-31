@@ -5,7 +5,16 @@ use core::{
 };
 
 pub trait Int:
-    Copy + Ord + Eq + Debug + Send + Sync + Add<Output = Self> + Sub<Output = Self> + Sum<Self>
+    Copy
+    + Ord
+    + Eq
+    + Debug
+    + Send
+    + Sync
+    + Add<Output = Self>
+    + Sub<Output = Self>
+    + Sum<Self>
+    + Default
 {
     fn as_f32(self) -> f32;
     fn as_f64(self) -> f64;
