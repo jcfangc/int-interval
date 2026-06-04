@@ -1,3 +1,5 @@
+use core::num::ParseIntError;
+
 use crate::{OneTwo, ZeroOneTwo};
 
 pub(crate) mod forwarding;
@@ -7,14 +9,54 @@ mod sealed;
 
 /// Built-in integer coordinate type accepted by closed-open intervals.
 pub trait IntPrimitive: sealed::Int {
+    fn zero() -> Self;
+    fn one() -> Self;
+
+    fn min_value() -> Self;
+    fn max_value() -> Self;
+
     fn as_f32(self) -> f32;
     fn as_f64(self) -> f64;
+
+    fn checked_add(self, rhs: Self) -> Option<Self>;
+    fn checked_sub(self, rhs: Self) -> Option<Self>;
+    fn checked_mul(self, rhs: Self) -> Option<Self>;
+    fn checked_div(self, rhs: Self) -> Option<Self>;
+    fn checked_rem(self, rhs: Self) -> Option<Self>;
+
+    fn saturating_add(self, rhs: Self) -> Self;
+    fn saturating_sub(self, rhs: Self) -> Self;
+    fn saturating_mul(self, rhs: Self) -> Self;
+
+    fn checked_next(self) -> Option<Self>;
+
+    fn parse_decimal(src: &str) -> Result<Self, ParseIntError>;
 }
 
 impl<T> IntPrimitive for T
 where
     T: sealed::Int,
 {
+    #[inline]
+    fn zero() -> Self {
+        sealed::Int::zero()
+    }
+
+    #[inline]
+    fn one() -> Self {
+        sealed::Int::one()
+    }
+
+    #[inline]
+    fn min_value() -> Self {
+        sealed::Int::min_value()
+    }
+
+    #[inline]
+    fn max_value() -> Self {
+        sealed::Int::max_value()
+    }
+
     #[inline]
     fn as_f32(self) -> f32 {
         sealed::Int::as_f32(self)
@@ -23,6 +65,56 @@ where
     #[inline]
     fn as_f64(self) -> f64 {
         sealed::Int::as_f64(self)
+    }
+
+    #[inline]
+    fn checked_add(self, rhs: Self) -> Option<Self> {
+        sealed::Int::checked_add(self, rhs)
+    }
+
+    #[inline]
+    fn checked_sub(self, rhs: Self) -> Option<Self> {
+        sealed::Int::checked_sub(self, rhs)
+    }
+
+    #[inline]
+    fn checked_mul(self, rhs: Self) -> Option<Self> {
+        sealed::Int::checked_mul(self, rhs)
+    }
+
+    #[inline]
+    fn checked_div(self, rhs: Self) -> Option<Self> {
+        sealed::Int::checked_div(self, rhs)
+    }
+
+    #[inline]
+    fn checked_rem(self, rhs: Self) -> Option<Self> {
+        sealed::Int::checked_rem(self, rhs)
+    }
+
+    #[inline]
+    fn saturating_add(self, rhs: Self) -> Self {
+        sealed::Int::saturating_add(self, rhs)
+    }
+
+    #[inline]
+    fn saturating_sub(self, rhs: Self) -> Self {
+        sealed::Int::saturating_sub(self, rhs)
+    }
+
+    #[inline]
+    fn saturating_mul(self, rhs: Self) -> Self {
+        sealed::Int::saturating_mul(self, rhs)
+    }
+
+    #[inline]
+    fn checked_next(self) -> Option<Self> {
+        sealed::Int::checked_next(self)
+    }
+
+    #[inline]
+    fn parse_decimal(src: &str) -> Result<Self, ParseIntError> {
+        sealed::Int::parse_decimal(src)
     }
 }
 
