@@ -456,7 +456,7 @@ dependencies = [
 
 [[package]]
 name = "int-interval"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "codspeed-criterion-compat",
  "proptest",
