@@ -9,14 +9,30 @@ mod sealed;
 
 /// Built-in integer coordinate type accepted by closed-open intervals.
 pub trait IntPrimitive: sealed::Int {
+    // ============================================================
+    // Constants
+    // ============================================================
+
     fn zero() -> Self;
     fn one() -> Self;
 
     fn min_value() -> Self;
     fn max_value() -> Self;
 
+    // ============================================================
+    // Numeric conversion
+    // ============================================================
+
     fn as_f32(self) -> f32;
     fn as_f64(self) -> f64;
+
+    fn checked_from<T>(value: T) -> Option<Self>
+    where
+        Self: Sized + TryFrom<T>;
+
+    // ============================================================
+    // Checked same-type arithmetic
+    // ============================================================
 
     fn checked_add(self, rhs: Self) -> Option<Self>;
     fn checked_sub(self, rhs: Self) -> Option<Self>;
@@ -24,11 +40,67 @@ pub trait IntPrimitive: sealed::Int {
     fn checked_div(self, rhs: Self) -> Option<Self>;
     fn checked_rem(self, rhs: Self) -> Option<Self>;
 
+    // ============================================================
+    // Checked converted arithmetic
+    // ============================================================
+
+    fn checked_add_from<T>(self, rhs: T) -> Option<Self>
+    where
+        Self: Sized + TryFrom<T>;
+
+    fn checked_sub_from<T>(self, rhs: T) -> Option<Self>
+    where
+        Self: Sized + TryFrom<T>;
+
+    fn checked_mul_from<T>(self, rhs: T) -> Option<Self>
+    where
+        Self: Sized + TryFrom<T>;
+
+    fn checked_div_from<T>(self, rhs: T) -> Option<Self>
+    where
+        Self: Sized + TryFrom<T>;
+
+    fn checked_rem_from<T>(self, rhs: T) -> Option<Self>
+    where
+        Self: Sized + TryFrom<T>;
+
+    // ============================================================
+    // Saturating same-type arithmetic
+    // ============================================================
+
     fn saturating_add(self, rhs: Self) -> Self;
     fn saturating_sub(self, rhs: Self) -> Self;
     fn saturating_mul(self, rhs: Self) -> Self;
 
+    // ============================================================
+    // Saturating converted arithmetic
+    // ============================================================
+
+    fn saturating_add_from<T>(self, rhs: T) -> Option<Self>
+    where
+        Self: Sized + TryFrom<T>;
+
+    fn saturating_sub_from<T>(self, rhs: T) -> Option<Self>
+    where
+        Self: Sized + TryFrom<T>;
+
+    fn saturating_mul_from<T>(self, rhs: T) -> Option<Self>
+    where
+        Self: Sized + TryFrom<T>;
+
+    // ============================================================
+    // Unit stepping
+    // ============================================================
+
     fn checked_next(self) -> Option<Self>;
+    fn checked_prev(self) -> Option<Self>;
+
+    fn saturating_next(self) -> Self;
+    fn saturating_prev(self) -> Self;
+
+    // ============================================================
+    // Parsing
+    // ============================================================
 
     fn parse_decimal(src: &str) -> Result<Self, ParseIntError>;
 }
@@ -37,6 +109,10 @@ impl<T> IntPrimitive for T
 where
     T: sealed::Int,
 {
+    // ============================================================
+    // Constants
+    // ============================================================
+
     #[inline]
     fn zero() -> Self {
         sealed::Int::zero()
@@ -57,6 +133,10 @@ where
         sealed::Int::max_value()
     }
 
+    // ============================================================
+    // Numeric conversion
+    // ============================================================
+
     #[inline]
     fn as_f32(self) -> f32 {
         sealed::Int::as_f32(self)
@@ -66,6 +146,18 @@ where
     fn as_f64(self) -> f64 {
         sealed::Int::as_f64(self)
     }
+
+    #[inline]
+    fn checked_from<U>(value: U) -> Option<Self>
+    where
+        Self: Sized + TryFrom<U>,
+    {
+        sealed::Int::checked_from(value)
+    }
+
+    // ============================================================
+    // Checked same-type arithmetic
+    // ============================================================
 
     #[inline]
     fn checked_add(self, rhs: Self) -> Option<Self> {
@@ -92,6 +184,54 @@ where
         sealed::Int::checked_rem(self, rhs)
     }
 
+    // ============================================================
+    // Checked converted arithmetic
+    // ============================================================
+
+    #[inline]
+    fn checked_add_from<U>(self, rhs: U) -> Option<Self>
+    where
+        Self: Sized + TryFrom<U>,
+    {
+        sealed::Int::checked_add_from(self, rhs)
+    }
+
+    #[inline]
+    fn checked_sub_from<U>(self, rhs: U) -> Option<Self>
+    where
+        Self: Sized + TryFrom<U>,
+    {
+        sealed::Int::checked_sub_from(self, rhs)
+    }
+
+    #[inline]
+    fn checked_mul_from<U>(self, rhs: U) -> Option<Self>
+    where
+        Self: Sized + TryFrom<U>,
+    {
+        sealed::Int::checked_mul_from(self, rhs)
+    }
+
+    #[inline]
+    fn checked_div_from<U>(self, rhs: U) -> Option<Self>
+    where
+        Self: Sized + TryFrom<U>,
+    {
+        sealed::Int::checked_div_from(self, rhs)
+    }
+
+    #[inline]
+    fn checked_rem_from<U>(self, rhs: U) -> Option<Self>
+    where
+        Self: Sized + TryFrom<U>,
+    {
+        sealed::Int::checked_rem_from(self, rhs)
+    }
+
+    // ============================================================
+    // Saturating same-type arithmetic
+    // ============================================================
+
     #[inline]
     fn saturating_add(self, rhs: Self) -> Self {
         sealed::Int::saturating_add(self, rhs)
@@ -107,10 +247,61 @@ where
         sealed::Int::saturating_mul(self, rhs)
     }
 
+    // ============================================================
+    // Saturating converted arithmetic
+    // ============================================================
+
+    #[inline]
+    fn saturating_add_from<U>(self, rhs: U) -> Option<Self>
+    where
+        Self: Sized + TryFrom<U>,
+    {
+        sealed::Int::saturating_add_from(self, rhs)
+    }
+
+    #[inline]
+    fn saturating_sub_from<U>(self, rhs: U) -> Option<Self>
+    where
+        Self: Sized + TryFrom<U>,
+    {
+        sealed::Int::saturating_sub_from(self, rhs)
+    }
+
+    #[inline]
+    fn saturating_mul_from<U>(self, rhs: U) -> Option<Self>
+    where
+        Self: Sized + TryFrom<U>,
+    {
+        sealed::Int::saturating_mul_from(self, rhs)
+    }
+
+    // ============================================================
+    // Unit stepping
+    // ============================================================
+
     #[inline]
     fn checked_next(self) -> Option<Self> {
         sealed::Int::checked_next(self)
     }
+
+    #[inline]
+    fn checked_prev(self) -> Option<Self> {
+        sealed::Int::checked_prev(self)
+    }
+
+    #[inline]
+    fn saturating_next(self) -> Self {
+        sealed::Int::saturating_next(self)
+    }
+
+    #[inline]
+    fn saturating_prev(self) -> Self {
+        sealed::Int::saturating_prev(self)
+    }
+
+    // ============================================================
+    // Parsing
+    // ============================================================
 
     #[inline]
     fn parse_decimal(src: &str) -> Result<Self, ParseIntError> {
@@ -403,3 +594,6 @@ pub trait COSaturatingMinkowskiHull: COPrimitive + Sized {
 pub trait IntCO: COConstruct + COBounds + COPredicates + COAlgebra + COMeasure {}
 
 impl<T> IntCO for T where T: COConstruct + COBounds + COPredicates + COAlgebra + COMeasure {}
+
+#[cfg(test)]
+mod tests_for_int_primitive;
