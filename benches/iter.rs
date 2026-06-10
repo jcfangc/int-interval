@@ -6,47 +6,47 @@ fn main() {
     divan::main();
 }
 
-#[divan::bench(name = "iter/int_interval/len_1")]
+#[divan::bench(name = "iter/len_1/int_interval")]
 fn iter_int_interval_len_1(bencher: Bencher) {
     bench_int_interval(bencher, 0, 1);
 }
 
-#[divan::bench(name = "iter/rust_intervals/len_1")]
+#[divan::bench(name = "iter/len_1/rust_intervals")]
 fn iter_rust_intervals_len_1(bencher: Bencher) {
     bench_rust_intervals(bencher, 0, 1);
 }
 
-#[divan::bench(name = "iter/std_range/len_1")]
+#[divan::bench(name = "iter/len_1/std_range")]
 fn iter_std_range_len_1(bencher: Bencher) {
     bench_std_range(bencher, 0, 1);
 }
 
-#[divan::bench(name = "iter/int_interval/len_16")]
+#[divan::bench(name = "iter/len_16/int_interval")]
 fn iter_int_interval_len_16(bencher: Bencher) {
     bench_int_interval(bencher, -8, 8);
 }
 
-#[divan::bench(name = "iter/rust_intervals/len_16")]
+#[divan::bench(name = "iter/len_16/rust_intervals")]
 fn iter_rust_intervals_len_16(bencher: Bencher) {
     bench_rust_intervals(bencher, -8, 8);
 }
 
-#[divan::bench(name = "iter/std_range/len_16")]
+#[divan::bench(name = "iter/len_16/std_range")]
 fn iter_std_range_len_16(bencher: Bencher) {
     bench_std_range(bencher, -8, 8);
 }
 
-#[divan::bench(name = "iter/int_interval/max_span")]
+#[divan::bench(name = "iter/max_span/int_interval")]
 fn iter_int_interval_max_span(bencher: Bencher) {
     bench_int_interval(bencher, i8::MIN, i8::MAX);
 }
 
-#[divan::bench(name = "iter/rust_intervals/max_span")]
+#[divan::bench(name = "iter/max_span/rust_intervals")]
 fn iter_rust_intervals_max_span(bencher: Bencher) {
     bench_rust_intervals(bencher, i8::MIN, i8::MAX);
 }
 
-#[divan::bench(name = "iter/std_range/max_span")]
+#[divan::bench(name = "iter/max_span/std_range")]
 fn iter_std_range_max_span(bencher: Bencher) {
     bench_std_range(bencher, i8::MIN, i8::MAX);
 }

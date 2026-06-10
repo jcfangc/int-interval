@@ -8,83 +8,83 @@ fn main() {
 
 const BASE: (i8, i8) = (-32, 96);
 
-#[divan::bench(name = "between/int_interval/gap_left")]
-fn between_int_interval_gap_left(bencher: Bencher) {
+#[divan::bench(name = "between/gap_left/int_interval")]
+fn between_gap_left_int_interval(bencher: Bencher) {
     bench_int_interval(bencher, (-96, -64));
 }
 
-#[divan::bench(name = "between/rust_intervals/gap_left")]
-fn between_rust_intervals_gap_left(bencher: Bencher) {
+#[divan::bench(name = "between/gap_left/rust_intervals")]
+fn between_gap_left_rust_intervals(bencher: Bencher) {
     bench_rust_intervals(bencher, (-96, -64));
 }
 
-#[divan::bench(name = "between/int_interval/gap_right")]
-fn between_int_interval_gap_right(bencher: Bencher) {
+#[divan::bench(name = "between/gap_right/int_interval")]
+fn between_gap_right_int_interval(bencher: Bencher) {
     bench_int_interval(bencher, (112, 127));
 }
 
-#[divan::bench(name = "between/rust_intervals/gap_right")]
-fn between_rust_intervals_gap_right(bencher: Bencher) {
+#[divan::bench(name = "between/gap_right/rust_intervals")]
+fn between_gap_right_rust_intervals(bencher: Bencher) {
     bench_rust_intervals(bencher, (112, 127));
 }
 
-#[divan::bench(name = "between/int_interval/adjacent_left")]
-fn between_int_interval_adjacent_left(bencher: Bencher) {
+#[divan::bench(name = "between/adjacent_left/int_interval")]
+fn between_adjacent_left_int_interval(bencher: Bencher) {
     bench_int_interval(bencher, (-64, -32));
 }
 
-#[divan::bench(name = "between/rust_intervals/adjacent_left")]
-fn between_rust_intervals_adjacent_left(bencher: Bencher) {
+#[divan::bench(name = "between/adjacent_left/rust_intervals")]
+fn between_adjacent_left_rust_intervals(bencher: Bencher) {
     bench_rust_intervals(bencher, (-64, -32));
 }
 
-#[divan::bench(name = "between/int_interval/adjacent_right")]
-fn between_int_interval_adjacent_right(bencher: Bencher) {
+#[divan::bench(name = "between/adjacent_right/int_interval")]
+fn between_adjacent_right_int_interval(bencher: Bencher) {
     bench_int_interval(bencher, (96, 112));
 }
 
-#[divan::bench(name = "between/rust_intervals/adjacent_right")]
-fn between_rust_intervals_adjacent_right(bencher: Bencher) {
+#[divan::bench(name = "between/adjacent_right/rust_intervals")]
+fn between_adjacent_right_rust_intervals(bencher: Bencher) {
     bench_rust_intervals(bencher, (96, 112));
 }
 
-#[divan::bench(name = "between/int_interval/overlap_left")]
-fn between_int_interval_overlap_left(bencher: Bencher) {
+#[divan::bench(name = "between/overlap_left/int_interval")]
+fn between_overlap_left_int_interval(bencher: Bencher) {
     bench_int_interval(bencher, (-64, 0));
 }
 
-#[divan::bench(name = "between/rust_intervals/overlap_left")]
-fn between_rust_intervals_overlap_left(bencher: Bencher) {
+#[divan::bench(name = "between/overlap_left/rust_intervals")]
+fn between_overlap_left_rust_intervals(bencher: Bencher) {
     bench_rust_intervals(bencher, (-64, 0));
 }
 
-#[divan::bench(name = "between/int_interval/overlap_right")]
-fn between_int_interval_overlap_right(bencher: Bencher) {
+#[divan::bench(name = "between/overlap_right/int_interval")]
+fn between_overlap_right_int_interval(bencher: Bencher) {
     bench_int_interval(bencher, (32, 112));
 }
 
-#[divan::bench(name = "between/rust_intervals/overlap_right")]
-fn between_rust_intervals_overlap_right(bencher: Bencher) {
+#[divan::bench(name = "between/overlap_right/rust_intervals")]
+fn between_overlap_right_rust_intervals(bencher: Bencher) {
     bench_rust_intervals(bencher, (32, 112));
 }
 
-#[divan::bench(name = "between/int_interval/contained")]
-fn between_int_interval_contained(bencher: Bencher) {
+#[divan::bench(name = "between/contained/int_interval")]
+fn between_contained_int_interval(bencher: Bencher) {
     bench_int_interval(bencher, (-16, 32));
 }
 
-#[divan::bench(name = "between/rust_intervals/contained")]
-fn between_rust_intervals_contained(bencher: Bencher) {
+#[divan::bench(name = "between/contained/rust_intervals")]
+fn between_contained_rust_intervals(bencher: Bencher) {
     bench_rust_intervals(bencher, (-16, 32));
 }
 
-#[divan::bench(name = "between/int_interval/equal")]
-fn between_int_interval_equal(bencher: Bencher) {
+#[divan::bench(name = "between/equal/int_interval")]
+fn between_equal_int_interval(bencher: Bencher) {
     bench_int_interval(bencher, (-32, 96));
 }
 
-#[divan::bench(name = "between/rust_intervals/equal")]
-fn between_rust_intervals_equal(bencher: Bencher) {
+#[divan::bench(name = "between/equal/rust_intervals")]
+fn between_equal_rust_intervals(bencher: Bencher) {
     bench_rust_intervals(bencher, (-32, 96));
 }
 
