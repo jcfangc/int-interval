@@ -8,112 +8,112 @@ fn main() {
 
 const BASE: (i8, i8) = (-32, 96);
 
-#[divan::bench(name = "difference/int_interval/disjoint_left")]
+#[divan::bench(name = "difference/disjoint_left/int_interval")]
 fn difference_int_interval_disjoint_left(bencher: Bencher) {
     bench_int_interval(bencher, (-96, -64));
 }
 
-#[divan::bench(name = "difference/rust_intervals/disjoint_left")]
+#[divan::bench(name = "difference/disjoint_left/rust_intervals")]
 fn difference_rust_intervals_disjoint_left(bencher: Bencher) {
     bench_rust_intervals(bencher, (-96, -64));
 }
 
-#[divan::bench(name = "difference/int_interval/disjoint_right")]
+#[divan::bench(name = "difference/disjoint_right/int_interval")]
 fn difference_int_interval_disjoint_right(bencher: Bencher) {
     bench_int_interval(bencher, (112, 127));
 }
 
-#[divan::bench(name = "difference/rust_intervals/disjoint_right")]
+#[divan::bench(name = "difference/disjoint_right/rust_intervals")]
 fn difference_rust_intervals_disjoint_right(bencher: Bencher) {
     bench_rust_intervals(bencher, (112, 127));
 }
 
-#[divan::bench(name = "difference/int_interval/adjacent_left")]
+#[divan::bench(name = "difference/adjacent_left/int_interval")]
 fn difference_int_interval_adjacent_left(bencher: Bencher) {
     bench_int_interval(bencher, (-64, -32));
 }
 
-#[divan::bench(name = "difference/rust_intervals/adjacent_left")]
+#[divan::bench(name = "difference/adjacent_left/rust_intervals")]
 fn difference_rust_intervals_adjacent_left(bencher: Bencher) {
     bench_rust_intervals(bencher, (-64, -32));
 }
 
-#[divan::bench(name = "difference/int_interval/adjacent_right")]
+#[divan::bench(name = "difference/adjacent_right/int_interval")]
 fn difference_int_interval_adjacent_right(bencher: Bencher) {
     bench_int_interval(bencher, (96, 112));
 }
 
-#[divan::bench(name = "difference/rust_intervals/adjacent_right")]
+#[divan::bench(name = "difference/adjacent_right/rust_intervals")]
 fn difference_rust_intervals_adjacent_right(bencher: Bencher) {
     bench_rust_intervals(bencher, (96, 112));
 }
 
-#[divan::bench(name = "difference/int_interval/equal")]
+#[divan::bench(name = "difference/equal/int_interval")]
 fn difference_int_interval_equal(bencher: Bencher) {
     bench_int_interval(bencher, (-32, 96));
 }
 
-#[divan::bench(name = "difference/rust_intervals/equal")]
+#[divan::bench(name = "difference/equal/rust_intervals")]
 fn difference_rust_intervals_equal(bencher: Bencher) {
     bench_rust_intervals(bencher, (-32, 96));
 }
 
-#[divan::bench(name = "difference/int_interval/covered_by_other")]
+#[divan::bench(name = "difference/covered_by_other/int_interval")]
 fn difference_int_interval_covered_by_other(bencher: Bencher) {
     bench_int_interval(bencher, (-64, 112));
 }
 
-#[divan::bench(name = "difference/rust_intervals/covered_by_other")]
+#[divan::bench(name = "difference/covered_by_other/rust_intervals")]
 fn difference_rust_intervals_covered_by_other(bencher: Bencher) {
     bench_rust_intervals(bencher, (-64, 112));
 }
 
-#[divan::bench(name = "difference/int_interval/remove_left_edge")]
+#[divan::bench(name = "difference/remove_left_edge/int_interval")]
 fn difference_int_interval_remove_left_edge(bencher: Bencher) {
     bench_int_interval(bencher, (-32, 32));
 }
 
-#[divan::bench(name = "difference/rust_intervals/remove_left_edge")]
+#[divan::bench(name = "difference/remove_left_edge/rust_intervals")]
 fn difference_rust_intervals_remove_left_edge(bencher: Bencher) {
     bench_rust_intervals(bencher, (-32, 32));
 }
 
-#[divan::bench(name = "difference/int_interval/remove_right_edge")]
+#[divan::bench(name = "difference/remove_right_edge/int_interval")]
 fn difference_int_interval_remove_right_edge(bencher: Bencher) {
     bench_int_interval(bencher, (32, 96));
 }
 
-#[divan::bench(name = "difference/rust_intervals/remove_right_edge")]
+#[divan::bench(name = "difference/remove_right_edge/rust_intervals")]
 fn difference_rust_intervals_remove_right_edge(bencher: Bencher) {
     bench_rust_intervals(bencher, (32, 96));
 }
 
-#[divan::bench(name = "difference/int_interval/overlap_left")]
+#[divan::bench(name = "difference/overlap_left/int_interval")]
 fn difference_int_interval_overlap_left(bencher: Bencher) {
     bench_int_interval(bencher, (-64, 0));
 }
 
-#[divan::bench(name = "difference/rust_intervals/overlap_left")]
+#[divan::bench(name = "difference/overlap_left/rust_intervals")]
 fn difference_rust_intervals_overlap_left(bencher: Bencher) {
     bench_rust_intervals(bencher, (-64, 0));
 }
 
-#[divan::bench(name = "difference/int_interval/overlap_right")]
+#[divan::bench(name = "difference/overlap_right/int_interval")]
 fn difference_int_interval_overlap_right(bencher: Bencher) {
     bench_int_interval(bencher, (32, 112));
 }
 
-#[divan::bench(name = "difference/rust_intervals/overlap_right")]
+#[divan::bench(name = "difference/overlap_right/rust_intervals")]
 fn difference_rust_intervals_overlap_right(bencher: Bencher) {
     bench_rust_intervals(bencher, (32, 112));
 }
 
-#[divan::bench(name = "difference/int_interval/remove_middle")]
+#[divan::bench(name = "difference/remove_middle/int_interval")]
 fn difference_int_interval_remove_middle(bencher: Bencher) {
     bench_int_interval(bencher, (-16, 32));
 }
 
-#[divan::bench(name = "difference/rust_intervals/remove_middle")]
+#[divan::bench(name = "difference/remove_middle/rust_intervals")]
 fn difference_rust_intervals_remove_middle(bencher: Bencher) {
     bench_rust_intervals(bencher, (-16, 32));
 }
